@@ -12,10 +12,10 @@ $(document).ready(() => {
     })
 })
 function setarValores() {
-    
+
     let urlParams = new URLSearchParams(window.location.search);
-    let idEducador = urlParams.get("Educador");  
-    if(idEducador){
+    let idEducador = urlParams.get("Educador");
+    if (idEducador) {
         $("#idTipoAgente").val(1)
         $("#idEducador").val(idEducador)
     }
@@ -30,7 +30,7 @@ async function realizarCadastro() {
         "idEducador": parseInt($("#idEducador").val())
     }
     await executarRequisicao("api/Agente", parametros, "POST")
-    window.location.href = "http://127.0.0.1:5500/Codigo/FRONT/ScholaAi.html";
+    window.location.href = "https://rafaellacristinacss.github.io/ScholaAi/Codigo/FRONT/ScholaAi.html";
 }
 async function preencherLoginsEducadores() {
     try {

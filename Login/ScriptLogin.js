@@ -26,7 +26,7 @@ $(document).ready(() => {
                 localStorage.setItem("idAluno", response.idAluno);
                 localStorage.setItem("login", decoded.unique_name);
 
-                window.location.href = "http://127.0.0.1:5500/Codigo/FRONT/ScholaAi.html";
+                window.location.href = "https://rafaellacristinacss.github.io/ScholaAi/Codigo/FRONT/ScholaAi.html";
 
             }, error: function (xhr) {
                 alert("Erro: " + xhr.responseText);
@@ -35,6 +35,6 @@ $(document).ready(() => {
 
     });
     $("#novaConta").click(function () {
-        window.location.href = "http://127.0.0.1:5500/Codigo/FRONT/Cadastro/Cadastro.html";
+        window.location.href = "https://rafaellacristinacss.github.io/ScholaAi/Codigo/FRONT/Cadastro/Cadastro.html";
     });
 })

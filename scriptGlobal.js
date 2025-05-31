@@ -1,4 +1,4 @@
-let BaseUrlFront = 'http://127.0.0.1:5500/';
+let BaseUrlFront = 'https://rafaellacristinacss.github.io/ScholaAi/';
 let BaseUrlBack = 'https://localhost:7034/';
 
 async function buscarEducadores() {
