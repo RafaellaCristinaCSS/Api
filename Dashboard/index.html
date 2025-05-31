@@ -1,0 +1,68 @@
+<h2>Dashboard</h2>
+<div class="content container-fluid">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card p-3" style="height: 100%;">
+                <h5>Bloco de Anotações</h5>
+                <textarea class="form-control" rows="6" placeholder="Escreva aqui"></textarea>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card p-3 text-center d-flex flex-column align-items-center">
+                <h5>Individual</h5>
+                <img src="imagens/grafico_individual.png" alt="Gráfico Individual" class="img-fluid"
+                    style="max-width: 70%; display: block; margin: auto;">
+                <button class="btn btn-outline-primary mt-2">Detalhes</button>
+                <div class="mt-3 w-100">
+                    <div class="d-flex justify-content-around" id="graficoAlunosGeral"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card p-3 text-center">
+                <div id="calendar"></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 text-center d-flex flex-column align-items-center">
+                <h5>Desempenho</h5>
+                <p class="text-danger">⬇ 2.1% último mês</p>
+                <img src="imagens/grafico_desempenho.png" alt="Gráfico" class="img-fluid"
+                    style="max-width: 70%; display: block; margin: auto;">
+                <button class="btn btn-outline-primary mt-2">Detalhes</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 text-center d-flex flex-column align-items-center" style="height: 100%;">
+                <h5>Dependentes Vinculados</h5>
+                <ul class="list-unstyled text-start" id="dependentesVinculados"></ul>
+                <button class="btn btn-outline-primary btn-block" onclick="redirecionarCadastroUsuario()">Cadastrar
+                    Dependente</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br', 
+        events: [
+            {
+                title: 'Reunião',
+                start: '2025-05-20'
+            },
+            {
+                title: 'Entrega de projeto',
+                start: '2025-05-22'
+            }
+        ]
+    });
+
+
+    calendar.render();
+</script>

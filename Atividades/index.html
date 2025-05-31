@@ -1,0 +1,116 @@
+<main class="content">
+  <div class="row">
+    <h4>Todos as aulas</h4>
+    <div class="d-flex justify-content-end hide">
+      <button type="button" id="novaAtividade" href="" class="btn btn-primary">Nova Atividade</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-6">
+      <label>Filtrar por matéria:</label>
+      <select class="form-control form-select" id="materia"></select>
+    </div>
+  </div>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f0f2f5;
+    }
+
+    .container {
+      padding: 30px;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+      color: #333;
+    }
+
+    .filtro-container {
+      display: flex;
+      margin-left: 240px;
+      margin-bottom: 30px;
+    }
+
+    .filtro-container label {
+      margin-right: 10px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    select {
+      padding: 10px 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #fff;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    select:hover {
+      border-color: #888;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .card img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+
+    .card-content {
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .card-description {
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="grid" id="lista-atividades"></div>
+    </div>
+  </body>
+  <script>
+    $(document).on('click', '.editarAtividade', function () {
+      const id = $(this).attr('id').replace('atividade-', '');
+      buscarAtividade(id)
+    });
+  </script>
+
+  </html>

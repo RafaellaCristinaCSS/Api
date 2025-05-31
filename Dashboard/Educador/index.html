@@ -1,0 +1,58 @@
+<h2>Dashboard</h2>
+<div class="content container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card p-3" style="height: 100%;">
+                <h5>Bloco de Anotações </h5>
+                <textarea class="form-control" rows="6" placeholder="Escreva aqui"></textarea>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 text-center d-flex flex-column align-items-center" style="height: 100%;">
+                <h5>Dependentes Vinculados</h5>
+                <ul class="list-unstyled text-start w-100 flex-grow-1" id="dependentesVinculados"></ul>
+                <button class="btn btn-outline-primary btn-block mt-auto w-100" onclick="redirecionarCadastroUsuario()">
+                    Cadastrar Dependente
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card p-3 text-center">
+                <div id="calendar" class="calendar"></div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+
+        <div class="col-md-10">
+            <div class="text-center">
+                <h5>Desempenho por Aluno</h5>
+            </div>
+            <div class="card p-3 text-center" style="height: 520px; overflow-x: auto; overflow-y: hidden;">
+                <div id="graficosContainer" class="d-flex" style="gap: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br',
+        events: [
+            {
+                title: 'Reunião',
+                start: '2025-05-20'
+            },
+            {
+                title: 'Entrega de projeto',
+                start: '2025-05-22'
+            }
+        ]
+    });
+    calendar.render();
+
+</script>

@@ -1,0 +1,62 @@
+<main class="content">
+  <h3 class="mb-4 text-center">Perfil</h3>
+  <form id="form-estatisticas">
+    <div class="row">
+      <div class="col-md-4 col-xs-12">
+        <label for="dataNascimento">Data de Nascimento</label>
+        <input class="form-control form-date" type="datetime" id="dataNascimento" />
+      </div>
+      <div class="col-md-4 col-xs-12">
+        <label for="estiloAprendizagem">Estilo de Aprendizagem</label>
+        <select class="form-control form-select" id="estiloAprendizagem">
+          <option>Selecione</option>
+          <option>Visual</option>
+          <option>Auditivo</option>
+          <option>Cinestésico</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-xs-12">
+        <label for="generoLiterarioFavorito">Gênero literário favorito</label>
+        <select class="form-control form-select" id="generoLiterarioFavorito">
+          <option>Selecione</option>
+          <option>Aventura</option>
+          <option>Ficção</option>
+          <option>Romance</option>
+          <option>Biografia</option>
+          <option>Infantil</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-xs-12">
+        <label for="modeloEnsino">Modelo de ensino atual</label>
+        <select class="form-control form-select" id="modeloEnsino">
+          <option>Selecione</option>
+          <option>Presencial</option>
+          <option>Híbrido</option>
+          <option>Remoto</option>
+          <option>Homeschooling</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-xs-12">
+        <label for="horasEstudo">Horas diárias para estudo</label>
+        <select class="form-control form-select" id="horasEstudo">
+          <option>Selecione</option>
+          <option>1 hora</option>
+          <option>2 horas</option>
+          <option>3 horas</option>
+          <option>4 horas ou mais</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-xs-12">
+        <label for="hobbies">O aluno tem algum hobbie?</label>
+        <input class="form-control" type="text" id="hobbies" placeholder="Ex: Desenhar, ler, jogar bola..." />
+      </div>
+      <div class="col-md-4 col-xs-12">
+        <label for="informacaoAdicional">Informação adicional relevante</label>
+        <input class="form-control" type="text" id="informacaoAdicional" placeholder="Ex: Dificuldade com leitura..." />
+      </div>
+    </div>
+    <div class="text-center">
+      <button type="button" onclick="enviarInformacoesAluno()" class="btn btn-success">Salvar</button>
+    </div>
+  </form>
+</main>
