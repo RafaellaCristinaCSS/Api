@@ -1,5 +1,5 @@
 function redirecionarCadastroUsuario() {
-    window.location.href = BaseUrlFront + "Codigo/FRONT/Cadastro/Cadastro.html?Educador=" + localStorage.getItem("idAgente");
+    window.location.href = BaseUrlFront + "Cadastro/index.html?Educador=" + localStorage.getItem("idAgente");
 }
 async function preencherAlunosVinculados() {
     try {
