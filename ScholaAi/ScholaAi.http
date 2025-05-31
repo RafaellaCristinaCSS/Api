@@ -1,0 +1,6 @@
+@ScholaAi_HostAddress = http://localhost:5109
+
+GET {{ScholaAi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
