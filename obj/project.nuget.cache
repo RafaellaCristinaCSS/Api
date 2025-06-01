@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "M3EgUnISpJI=",
+  "dgSpecHash": "AXWeN9efwyE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi\\ScholaAi.csproj",
+  "projectFilePath": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\rsacramento\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\rsacramento\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

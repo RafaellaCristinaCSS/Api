@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi\\ScholaAi.csproj": {}
+    "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi\\ScholaAi.csproj": {
+    "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi\\ScholaAi.csproj",
+        "projectUniqueName": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi.csproj",
         "projectName": "ScholaAi",
-        "projectPath": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi\\ScholaAi.csproj",
+        "projectPath": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi.csproj",
         "packagesPath": "C:\\Users\\rsacramento\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\ScholaAi\\obj\\",
+        "outputPath": "C:\\Users\\rsacramento\\Desktop\\Dados\\Dados Pessoais\\Puc\\TCC\\ScholaAi\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\rsacramento\\AppData\\Roaming\\NuGet\\NuGet.Config",

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ScholaAi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a59cb7b36cc80955fb2670b3a2a44f23589555e3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b56a359036f23d4db68721327e287b520cdf397")]
 [assembly: System.Reflection.AssemblyProductAttribute("ScholaAi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ScholaAi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
