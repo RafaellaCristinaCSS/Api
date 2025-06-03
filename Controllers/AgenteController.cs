@@ -287,7 +287,7 @@ namespace ScholaAi.Controllers
 
             return Ok(alunos);
         }
-        [Authorize(Roles = "admin")]
+        //[Authorize(Roles = "admin")]
         [HttpPut("educador/{id}/editarNivelVisibilidade")]
         public async Task<IActionResult> AtualizarNivelVisibilidade(int id,[FromBody] AtualizarVisibilidadeDTO dto)
         {
