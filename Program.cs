@@ -44,7 +44,9 @@ namespace ScholaAi
             app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
-            app.UseCors("AllowGitHubPages");
+
+            app.UseCors("AllowSpecificOrigins");
+
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
