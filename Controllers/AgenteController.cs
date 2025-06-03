@@ -10,6 +10,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace ScholaAi.Controllers
@@ -288,7 +289,7 @@ namespace ScholaAi.Controllers
         }
         [Authorize(Roles = "admin")]
         [HttpPut("educador/{id}/editarNivelVisibilidade")]
-        public async Task<IActionResult> AtualizarNivelVisibilidade(int id, [FromBody] AtualizarVisibilidadeDTO dto)
+        public async Task<IActionResult> AtualizarNivelVisibilidade(int id,[FromBody] AtualizarVisibilidadeDTO dto)
         {
             try
             {
@@ -296,7 +297,6 @@ namespace ScholaAi.Controllers
                 {
                     return BadRequest("O nível de visibilidade deve ser 1, 2 ou 3.");
                 }
-
 
                 var educador = await _context.Educador.FindAsync(id);
                 if(educador == null)
@@ -309,8 +309,9 @@ namespace ScholaAi.Controllers
 
                 return Ok(new { Message = "Nível de visibilidade atualizado com sucesso!",educador });
             }
-            catch(Exception ex) { 
-                throw new Exception("Erro :: " + ex.Message, ex);
+            catch(Exception ex)
+            {
+                throw new Exception($"Erro :: AgenteController - AtualizarNivelVisibilidade - Erro interno ao atualizar visibilidade {ex.Message}");
             }
         }
     }
