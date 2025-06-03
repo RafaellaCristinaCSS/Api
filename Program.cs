@@ -22,13 +22,14 @@ namespace ScholaAi
 
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowGitHubPages", policy =>
+                options.AddPolicy("AllowGitHubPages",policy =>
                 {
-                    policy.WithOrigins("https://rafaellacristinacss.github.io")
+                    policy.SetIsOriginAllowed(_ => true) 
                           .AllowAnyMethod()
                           .AllowAnyHeader();
                 });
             });
+
 
             var app = builder.Build();
 
