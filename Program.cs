@@ -21,14 +21,21 @@ namespace ScholaAi
                  options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowGitHubPages",policy =>
-                {
-                    policy.SetIsOriginAllowed(_ => true) 
-                          .AllowAnyMethod()
-                          .AllowAnyHeader();
-                });
-            });
+{
+    options.AddPolicy("AllowSpecificOrigins", policy =>
+    {
+        policy.WithOrigins("https://rafaellacristinacss.github.io")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 
 
             var app = builder.Build();
