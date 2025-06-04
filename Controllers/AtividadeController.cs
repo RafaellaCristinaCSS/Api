@@ -105,8 +105,6 @@ namespace ScholaAi.Controllers
             await _context.SaveChangesAsync();
             return Ok("Atividade atualizada com sucesso.");
         }
-
-        //[Authorize]
         [HttpPost]
         public async Task<IActionResult> AdicionarAtividade([FromBody] AtividadeDTO atividadeDto)
         {
@@ -128,35 +126,38 @@ namespace ScholaAi.Controllers
                 Publicada = atividadeDto.Publicada
             };
 
-            if (atividadeDto.IdTipoAtividade == 1)
+            switch (atividadeDto.IdTipoAtividade)
             {
-                atividade.Questoes = atividadeDto.Questoes.Select(q => new Questao
-                {
-                    Texto = q.Texto,
-                    Pontuacao = q.Pontuacao,
-                    Alternativas = q.Alternativas.Select(a => new Alternativa
+                case 1:
+                    if (atividadeDto.Questoes?.Any() == true)
                     {
-                        Texto = a.Texto,
-                        Correta = a.Correta
-                    }).ToList()
-                }).ToList();
-            }
-            else if (atividadeDto.IdTipoAtividade == 2 || atividadeDto.IdTipoAtividade == 3)
-            {
-                atividade.TextoLeitura = atividadeDto.TextoLeitura;
-                atividade.ArquivoBase64 = atividadeDto.ArquivoBase64;
-                atividade.NomeArquivo = atividadeDto.NomeArquivo;
-            }
-            else if (atividadeDto.IdTipoAtividade == 4)
-            {
-                try
-                {
-                    atividade.Questoes = await GerarQuestoesAutomaticamente(atividadeDto);
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest("Erro ao gerar questões automaticamente: " + ex.Message);
-                }
+                        atividade.Questoes = atividadeDto.Questoes.Select(q => new Questao
+                        {
+                            Texto = q.Texto,
+                            Pontuacao = q.Pontuacao,
+                            Alternativas = q.Alternativas.Select(a => new Alternativa
+                            {
+                                Texto = a.Texto,
+                                Correta = a.Correta
+                            }).ToList()
+                        }).ToList();
+                    }
+                    break;
+
+                case 2:
+                case 3:
+                    atividade.TextoLeitura = atividadeDto.TextoLeitura;
+                    atividade.ArquivoBase64 = atividadeDto.ArquivoBase64;
+                    atividade.NomeArquivo = atividadeDto.NomeArquivo;
+                    break;
+
+                case 4:
+                    var questoesGeradas = await GerarQuestoesAutomaticamente(atividadeDto);
+                    if (questoesGeradas == null)
+                        return BadRequest("Erro ao gerar questões automaticamente.");
+
+                    atividade.Questoes = questoesGeradas;
+                    break;
             }
 
             _context.Atividade.Add(atividade);
@@ -170,13 +171,13 @@ namespace ScholaAi.Controllers
                     IdAtividade = atividade.Id,
                     IdMateria = atividadeDto.IdMateria
                 };
-
                 _context.AlunoAtividadeMateria.Add(relacao);
             }
 
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(AdicionarAtividade), new { id = atividade.Id }, atividade);
         }
+
 
         [HttpGet("buscarAtividade/{idAtividade}")]
         public async Task<IActionResult> GetAtividade(int idAtividade)
@@ -477,7 +478,7 @@ namespace ScholaAi.Controllers
         public int Pontuacao { get; set; }
         public bool Publicada { get; set; }
         public List<int> ListaIdAlunos { get; set; } = new();
-        public List<QuestaoDTO> Questoes { get; set; } = new();
+        public List<QuestaoDTO>? Questoes { get; set; } = new();
 
         public string? TextoLeitura { get; set; }
         public string? ArquivoBase64 { get; set; }
@@ -493,7 +494,7 @@ namespace ScholaAi.Controllers
     {
         public string Texto { get; set; }
         public float Pontuacao { get; set; }
-        public List<AlternativaDTO> Alternativas { get; set; }
+        public List<AlternativaDTO>? Alternativas { get; set; }
     }
 
     public class AlternativaDTO
