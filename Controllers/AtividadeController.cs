@@ -6,6 +6,9 @@ using Microsoft.IdentityModel.Tokens;
 using ScholaAi.Dados;
 using ScholaAi.Models;
 using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Text;
 using System.Text.Json.Serialization;
 
 namespace ScholaAi.Controllers
@@ -380,9 +383,110 @@ namespace ScholaAi.Controllers
                 PontuacaoFinal = pontuacaoTotal
             });
         }
+        [HttpPost("gerarQuestionarioAutomatico")]
+        public async Task<IActionResult> CriarQuestionarioAutomatico(
+    int idAluno,
+    int idMateria,
+    string nomeMateria,
+    string temaAtividade,
+    int idAgente,
+    string nomeQuestionario,
+    string urlApiInterna,
+    string openAiKey)
+        {
+            var aluno = await _context.Aluno.FirstOrDefaultAsync(a => a.Id == idAluno);
+            if(aluno == null)
+                return NotFound("Aluno não encontrado.");
+
+            var materiais = await _context.Material
+                .Where(m => m.IdMateria == idMateria && !m.Excluido)
+                .Select(m => m.Conteudo)
+                .ToListAsync();
+
+            var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",openAiKey);
+
+            var prompt = $@"
+Crie 3 questões de múltipla escolha com 4 alternativas cada, sendo uma correta.
+Matéria: {nomeMateria}
+Tema: {temaAtividade}
+Aluno: nascido em {aluno.DataNascimento:dd/MM/yyyy}, gosta de {aluno.Hobbies}, gênero literário favorito: {aluno.GeneroLiterarioFavorito}, modelo de ensino: {aluno.ModeloEnsino}, info adicional: {aluno.InformacaoAdicional}
+Base de leitura: {string.Join(" ",materiais)}
+
+Formato JSON:
+[
+  {{
+    'texto': 'string',
+    'pontuacao': 0,
+    'alternativas': [
+      {{ 'texto': 'string', 'correta': true }},
+      {{ 'texto': 'string', 'correta': false }},
+      {{ 'texto': 'string', 'correta': false }},
+      {{ 'texto': 'string', 'correta': false }}
+    ]
+  }}
+]
+";
+
+            var body = new
+            {
+                model = "gpt-4o",
+                temperature = 0.7,
+                messages = new[]
+                {
+            new { role = "system", content = "Você é um gerador de questionários escolares." },
+            new { role = "user", content = prompt }
+        }
+            };
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(body),Encoding.UTF8,"application/json");
+            var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions",jsonContent);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseString);
+            var content = doc.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .ToString();
+
+            content = content.Replace("'","\"");
+
+            List<Questao> questoes;
+            try
+            {
+                questoes = JsonSerializer.Deserialize<List<Questao>>(content,new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch(JsonException ex)
+            {
+                return BadRequest($"Erro ao interpretar as questões retornadas pela IA: {ex.Message}\nConteúdo:\n{content}");
+            }
+
+            var questionario = new
+            {
+                nome = nomeQuestionario,
+                idMateria = idMateria,
+                idAgente = idAgente,
+                idTipoAtividade = 4,
+                pontuacao = 0,
+                publicada = false,
+                listaIdAlunos = new[] { aluno.Id },
+                questoes = questoes,
+                textoLeitura = string.Join("\n",materiais),
+                arquivoBase64 = "",
+                nomeArquivo = ""
+            };
+
+            var jsonString = JsonSerializer.Serialize(questionario,new JsonSerializerOptions { WriteIndented = true });
+            return Ok(jsonString);
+        }
+
     }
 
-        public class TipoAtividadeDTO
+    public class TipoAtividadeDTO
     {
         public int Id { get; set; }
         public string Nome { get; set; }
