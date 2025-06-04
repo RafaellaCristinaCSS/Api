@@ -481,8 +481,23 @@ namespace ScholaAi.Controllers
 
                 try
                 {
-                    if(content.StartsWith("```") && content.EndsWith("```"))
-                        content = content.Substring(3,content.Length - 6).Trim();
+                    content = content.Trim();
+
+                    if(content.StartsWith("```"))
+                    {
+                        var firstLineEnd = content.IndexOf('\n');
+                        if(firstLineEnd != -1)
+                        {
+                            content = content.Substring(firstLineEnd + 1);
+                        }
+
+                        if(content.EndsWith("```"))
+                        {
+                            content = content.Substring(0,content.Length - 3);
+                        }
+
+                        content = content.Trim();
+                    }
 
                     var questoes = JsonSerializer.Deserialize<List<Questao>>(content,new JsonSerializerOptions
                     {
