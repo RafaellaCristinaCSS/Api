@@ -15,7 +15,7 @@ namespace ScholaAi.Controllers
 {
     [ApiController]
     [Route("api/atividade")]
-    public class AtividadeController :ControllerBase
+    public class AtividadeController : ControllerBase
     {
         private readonly AppDbContext _context;
 
@@ -28,19 +28,19 @@ namespace ScholaAi.Controllers
         public async Task<IActionResult> BuscarTiposDeAtividades()
         {
             var tiposDeAtividades = await _context.TipoAtividade
-                                    .Select(ta => new { ta.Id,ta.Nome })
+                                    .Select(ta => new { ta.Id, ta.Nome })
                                     .ToListAsync();
             return Ok(tiposDeAtividades);
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> EditarAtividade(int id,[FromBody] AtividadeDTO atividadeDto)
+        public async Task<IActionResult> EditarAtividade(int id, [FromBody] AtividadeDTO atividadeDto)
         {
             var atividadeExistente = await _context.Atividade
                 .Include(a => a.Questoes)
                     .ThenInclude(q => q.Alternativas)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
-            if(atividadeExistente == null)
+            if (atividadeExistente == null)
                 return NotFound("Atividade não encontrada.");
 
             var idProfessor = await _context.Educador
@@ -48,7 +48,7 @@ namespace ScholaAi.Controllers
                 .Select(e => e.Id)
                 .FirstOrDefaultAsync();
 
-            if(idProfessor == 0)
+            if (idProfessor == 0)
                 return BadRequest("Professor não encontrado para o agente informado.");
 
             atividadeExistente.Nome = atividadeDto.Nome;
@@ -62,16 +62,16 @@ namespace ScholaAi.Controllers
             atividadeExistente.ArquivoBase64 = atividadeDto.ArquivoBase64;
             atividadeExistente.NomeArquivo = atividadeDto.NomeArquivo;
 
-            if(atividadeDto.Questoes != null && atividadeDto.Questoes.Any())
+            if (atividadeDto.Questoes != null && atividadeDto.Questoes.Any())
             {
-                foreach(var questao in atividadeExistente.Questoes)
+                foreach (var questao in atividadeExistente.Questoes)
                 {
                     _context.Alternativa.RemoveRange(questao.Alternativas);
                 }
                 _context.Questao.RemoveRange(atividadeExistente.Questoes);
                 atividadeExistente.Questoes.Clear();
 
-                foreach(var questaoDto in atividadeDto.Questoes)
+                foreach (var questaoDto in atividadeDto.Questoes)
                 {
                     var novaQuestao = new Questao
                     {
@@ -91,7 +91,7 @@ namespace ScholaAi.Controllers
             var relacoesAntigas = _context.AlunoAtividadeMateria.Where(r => r.IdAtividade == id);
             _context.AlunoAtividadeMateria.RemoveRange(relacoesAntigas);
 
-            foreach(var idAluno in atividadeDto.ListaIdAlunos)
+            foreach (var idAluno in atividadeDto.ListaIdAlunos)
             {
                 var novaRelacao = new AlunoAtividadeMateria
                 {
@@ -106,9 +106,7 @@ namespace ScholaAi.Controllers
             return Ok("Atividade atualizada com sucesso.");
         }
 
-
         //[Authorize]
-
         [HttpPost]
         public async Task<IActionResult> AdicionarAtividade([FromBody] AtividadeDTO atividadeDto)
         {
@@ -117,7 +115,7 @@ namespace ScholaAi.Controllers
                 .Select(e => e.Id)
                 .FirstOrDefaultAsync();
 
-            if(idProfessor == 0)
+            if (idProfessor == 0)
                 return BadRequest("Professor não encontrado para o agente informado. " + atividadeDto.IdAgente);
 
             var atividade = new Atividade
@@ -130,7 +128,7 @@ namespace ScholaAi.Controllers
                 Publicada = atividadeDto.Publicada
             };
 
-            if(atividadeDto.IdTipoAtividade == 1)
+            if (atividadeDto.IdTipoAtividade == 1)
             {
                 atividade.Questoes = atividadeDto.Questoes.Select(q => new Questao
                 {
@@ -143,17 +141,28 @@ namespace ScholaAi.Controllers
                     }).ToList()
                 }).ToList();
             }
-            else if(atividadeDto.IdTipoAtividade == 2 || atividadeDto.IdTipoAtividade == 3)
+            else if (atividadeDto.IdTipoAtividade == 2 || atividadeDto.IdTipoAtividade == 3)
             {
                 atividade.TextoLeitura = atividadeDto.TextoLeitura;
                 atividade.ArquivoBase64 = atividadeDto.ArquivoBase64;
                 atividade.NomeArquivo = atividadeDto.NomeArquivo;
             }
+            else if (atividadeDto.IdTipoAtividade == 4)
+            {
+                try
+                {
+                    atividade.Questoes = await GerarQuestoesAutomaticamente(atividadeDto);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Erro ao gerar questões automaticamente: " + ex.Message);
+                }
+            }
 
             _context.Atividade.Add(atividade);
             await _context.SaveChangesAsync();
 
-            foreach(var idAluno in atividadeDto.ListaIdAlunos)
+            foreach (var idAluno in atividadeDto.ListaIdAlunos)
             {
                 var relacao = new AlunoAtividadeMateria
                 {
@@ -166,14 +175,14 @@ namespace ScholaAi.Controllers
             }
 
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(AdicionarAtividade),new { id = atividade.Id },atividade);
+            return CreatedAtAction(nameof(AdicionarAtividade), new { id = atividade.Id }, atividade);
         }
 
         [HttpGet("buscarAtividade/{idAtividade}")]
         public async Task<IActionResult> GetAtividade(int idAtividade)
         {
             var materias = await _context.Materia
-                .ToDictionaryAsync(m => m.Id,m => m.Nome);
+                .ToDictionaryAsync(m => m.Id, m => m.Nome);
 
             var atividade = await _context.Atividade
                 .Where(a => a.Id == idAtividade)
@@ -181,7 +190,7 @@ namespace ScholaAi.Controllers
                     .ThenInclude(q => q.Alternativas)
                 .FirstOrDefaultAsync();
 
-            if(atividade == null)
+            if (atividade == null)
                 return NotFound("Atividade não encontrada");
 
             var alunosAtividadeMateria = await _context.AlunoAtividadeMateria
@@ -197,9 +206,9 @@ namespace ScholaAi.Controllers
                 atividade.IdTipoAtividade,
                 atividade.Publicada,
                 atividade.Pontuacao,
-                atividade.TextoLeitura,     
-                atividade.ArquivoBase64,    
-                atividade.NomeArquivo,      
+                atividade.TextoLeitura,
+                atividade.ArquivoBase64,
+                atividade.NomeArquivo,
                 Alunos = alunosAtividadeMateria,
                 Materia = materias.ContainsKey(atividade.IdMateria) ? materias[atividade.IdMateria] : "Desconhecida",
                 Questoes = atividade.Questoes.Select(q => new
@@ -216,7 +225,7 @@ namespace ScholaAi.Controllers
                 })
             };
 
-            return Ok(new { TipoAgente = "Aluno",Atividade = resultado });
+            return Ok(new { TipoAgente = "Aluno", Atividade = resultado });
         }
 
 
@@ -228,7 +237,7 @@ namespace ScholaAi.Controllers
                 .Select(e => e.Id)
                 .FirstOrDefaultAsync();
 
-            if(idEducador != 0)
+            if (idEducador != 0)
             {
                 var atividadesEducador = await _context.Atividade
                     .Where(a => a.IdProfessor == idEducador)
@@ -273,22 +282,22 @@ namespace ScholaAi.Controllers
                     };
                 }).ToList();
 
-                        return Ok(new { TipoAgente = "Educador",Atividades = resultado });
+                return Ok(new { TipoAgente = "Educador", Atividades = resultado });
             }
 
-                    var idAluno = await _context.Aluno
-             .Where(a => a.IdAgente == idAgente)
-             .Select(a => a.Id)
-             .FirstOrDefaultAsync();
+            var idAluno = await _context.Aluno
+     .Where(a => a.IdAgente == idAgente)
+     .Select(a => a.Id)
+     .FirstOrDefaultAsync();
 
-            if(idAluno != 0)
+            if (idAluno != 0)
             {
                 var registros = await _context.AlunoAtividadeMateria
                     .Where(aam => aam.IdAluno == idAluno && aam.Atividade.Publicada == true)
                     .Include(aam => aam.Atividade)
                         .ThenInclude(a => a.Questoes)
                             .ThenInclude(q => q.Alternativas)
-                    .Include(aam => aam.Materia) 
+                    .Include(aam => aam.Materia)
                     .ToListAsync();
 
                 var resultado = registros.Select(r => new
@@ -316,7 +325,7 @@ namespace ScholaAi.Controllers
                     })
                 }).ToList();
 
-                return Ok(new { TipoAgente = "Aluno",Atividades = resultado });
+                return Ok(new { TipoAgente = "Aluno", Atividades = resultado });
             }
 
             return NotFound("Agente não encontrado.");
@@ -330,22 +339,22 @@ namespace ScholaAi.Controllers
                              .Select(a => a.Id)
                              .FirstOrDefaultAsync();
 
-            if(idAluno == 0)
+            if (idAluno == 0)
                 return BadRequest("Aluno não encontrado para o agente informado.");
 
             float pontuacaoTotal = 0;
 
-            foreach(var resposta in respostaAlunoDto.Respostas)
+            foreach (var resposta in respostaAlunoDto.Respostas)
             {
                 var alternativa = await _context.Alternativa
                     .FirstOrDefaultAsync(a => a.Id == resposta.AlternativaId && a.QuestaoId == resposta.QuestaoId);
 
-                if(alternativa == null) continue;
+                if (alternativa == null) continue;
 
-                if(alternativa.Correta)
+                if (alternativa.Correta)
                 {
                     var questao = await _context.Questao.FirstOrDefaultAsync(q => q.Id == resposta.QuestaoId);
-                    if(questao != null)
+                    if (questao != null)
                     {
                         pontuacaoTotal += questao.Pontuacao;
                     }
@@ -358,7 +367,7 @@ namespace ScholaAi.Controllers
                     a.IdAtividade == respostaAlunoDto.AtividadeId &&
                     a.IdMateria == respostaAlunoDto.MateriaId);
 
-            if(alunoAtividade == null)
+            if (alunoAtividade == null)
             {
                 alunoAtividade = new AlunoAtividadeMateria
                 {
@@ -383,50 +392,35 @@ namespace ScholaAi.Controllers
                 PontuacaoFinal = pontuacaoTotal
             });
         }
-        [HttpPost("gerarQuestionarioAutomatico")]
-        public async Task<IActionResult> CriarQuestionarioAutomatico(
-    int idAluno,
-    int idMateria,
-    string nomeMateria,
-    string temaAtividade,
-    int idAgente,
-    string nomeQuestionario,
-    string urlApiInterna,
-    string openAiKey)
+        private async Task<List<Questao>> GerarQuestoesAutomaticamente(AtividadeDTO dto)
         {
-            var aluno = await _context.Aluno.FirstOrDefaultAsync(a => a.Id == idAluno);
-            if(aluno == null)
-                return NotFound("Aluno não encontrado.");
+            var aluno = await _context.Aluno.FirstOrDefaultAsync(a => a.Id == dto.ListaIdAlunos.First());
+            if (aluno == null) throw new Exception("Aluno não encontrado.");
 
             var materiais = await _context.Material
-                .Where(m => m.IdMateria == idMateria && !m.Excluido)
+                .Where(m => m.IdMateria == dto.IdMateria && !m.Excluido)
                 .Select(m => m.Conteudo)
                 .ToListAsync();
 
-            var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",openAiKey);
-
             var prompt = $@"
-Crie 3 questões de múltipla escolha com 4 alternativas cada, sendo uma correta.
-Matéria: {nomeMateria}
-Tema: {temaAtividade}
-Aluno: nascido em {aluno.DataNascimento:dd/MM/yyyy}, gosta de {aluno.Hobbies}, gênero literário favorito: {aluno.GeneroLiterarioFavorito}, modelo de ensino: {aluno.ModeloEnsino}, info adicional: {aluno.InformacaoAdicional}
-Base de leitura: {string.Join(" ",materiais)}
+                Crie 3 questões de múltipla escolha com 4 alternativas cada, sendo uma correta.
+                Matéria: {dto.NomeMateria}
+                Tema: {dto.TemaAtividade}
+                Aluno: nascido em {aluno.DataNascimento}, gosta de {string.Join(", ", aluno.Hobbies)}, tem como genero literario favorito {aluno.GeneroLiterarioFavorito} e {aluno.InformacaoAdicional}
+                Base de leitura: {string.Join(" ", materiais)}
 
-Formato JSON:
-[
-  {{
-    'texto': 'string',
-    'pontuacao': 0,
-    'alternativas': [
-      {{ 'texto': 'string', 'correta': true }},
-      {{ 'texto': 'string', 'correta': false }},
-      {{ 'texto': 'string', 'correta': false }},
-      {{ 'texto': 'string', 'correta': false }}
-    ]
-  }}
-]
-";
+                Formato JSON:
+                [
+                  {{
+                    'texto': 'string',
+                    'pontuacao': 0,
+                    'alternativas': [
+                      {{ 'texto': 'string', 'correta': true/false }},
+                      ...
+                    ]
+                  }}
+                ]
+                ";
 
             var body = new
             {
@@ -439,8 +433,11 @@ Formato JSON:
         }
             };
 
-            var jsonContent = new StringContent(JsonSerializer.Serialize(body),Encoding.UTF8,"application/json");
-            var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions",jsonContent);
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dto.OpenAiKey);
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions", jsonContent);
             var responseString = await response.Content.ReadAsStringAsync();
 
             using var doc = JsonDocument.Parse(responseString);
@@ -450,47 +447,27 @@ Formato JSON:
                 .GetProperty("content")
                 .ToString();
 
-            content = content.Replace("'","\"");
-
-            List<Questao> questoes;
             try
             {
-                questoes = JsonSerializer.Deserialize<List<Questao>>(content,new JsonSerializerOptions
+                var questoes = JsonSerializer.Deserialize<List<Questao>>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
-            }
-            catch(JsonException ex)
-            {
-                return BadRequest($"Erro ao interpretar as questões retornadas pela IA: {ex.Message}\nConteúdo:\n{content}");
-            }
 
-            var questionario = new
+                return questoes ?? new List<Questao>();
+            }
+            catch (Exception ex)
             {
-                nome = nomeQuestionario,
-                idMateria = idMateria,
-                idAgente = idAgente,
-                idTipoAtividade = 4,
-                pontuacao = 0,
-                publicada = false,
-                listaIdAlunos = new[] { aluno.Id },
-                questoes = questoes,
-                textoLeitura = string.Join("\n",materiais),
-                arquivoBase64 = "",
-                nomeArquivo = ""
-            };
-
-            var jsonString = JsonSerializer.Serialize(questionario,new JsonSerializerOptions { WriteIndented = true });
-            return Ok(jsonString);
+                throw new Exception("Erro ao interpretar as questões retornadas pela IA: " + ex.Message + "\nConteúdo:\n" + content);
+            }
         }
-
     }
-
     public class TipoAtividadeDTO
     {
         public int Id { get; set; }
         public string Nome { get; set; }
     }
+
     public class AtividadeDTO
     {
         public string Nome { get; set; }
@@ -502,11 +479,15 @@ Formato JSON:
         public List<int> ListaIdAlunos { get; set; } = new();
         public List<QuestaoDTO> Questoes { get; set; } = new();
 
-        public string? TextoLeitura { get; set; }     
-        public string? ArquivoBase64 { get; set; }    
-        public string? NomeArquivo { get; set; }      
-    }
+        public string? TextoLeitura { get; set; }
+        public string? ArquivoBase64 { get; set; }
+        public string? NomeArquivo { get; set; }
 
+        public string? NomeMateria { get; set; }
+        public string? TemaAtividade { get; set; }
+        public string? OpenAiKey { get; set; }
+        public string? UrlApiInterna { get; set; }
+    }
 
     public class QuestaoDTO
     {
@@ -523,7 +504,7 @@ Formato JSON:
     public class RespostaAlunoDto
     {
         public int AtividadeId { get; set; }
-        public int AgenteId { get; set; }  
+        public int AgenteId { get; set; }
         public int MateriaId { get; set; }
         public List<RespostaQuestaoDto> Respostas { get; set; }
     }
