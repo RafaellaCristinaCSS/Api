@@ -152,11 +152,18 @@ namespace ScholaAi.Controllers
                     break;
 
                 case 4:
-                    var questoesGeradas = await GerarQuestoesAutomaticamente(atividadeDto);
-                    if (questoesGeradas == null)
-                        return BadRequest("Erro ao gerar questões automaticamente.");
+                    try
+                    {
+                        var questoesGeradas = await GerarQuestoesAutomaticamente(atividadeDto);
+                        if(questoesGeradas == null)
+                            return BadRequest("Erro ao gerar questões automaticamente.");
 
-                    atividade.Questoes = questoesGeradas;
+                        atividade.Questoes = questoesGeradas;
+                    }
+                    catch(Exception ex)
+                    {
+                        return StatusCode(500,"Erro ao gerar questões automaticamente: " + ex.Message);
+                    }
                     break;
             }
 
@@ -395,73 +402,106 @@ namespace ScholaAi.Controllers
         }
         private async Task<List<Questao>> GerarQuestoesAutomaticamente(AtividadeDTO dto)
         {
-            var aluno = await _context.Aluno.FirstOrDefaultAsync(a => a.Id == dto.ListaIdAlunos.First());
-            if (aluno == null) throw new Exception("Aluno não encontrado.");
-
-            var materiais = await _context.Material
-                .Where(m => m.IdMateria == dto.IdMateria && !m.Excluido)
-                .Select(m => m.Conteudo)
-                .ToListAsync();
-
-            var prompt = $@"
-                Crie 3 questões de múltipla escolha com 4 alternativas cada, sendo uma correta.
-                Matéria: {dto.NomeMateria}
-                Tema: {dto.TemaAtividade}
-                Aluno: nascido em {aluno.DataNascimento}, gosta de {string.Join(", ", aluno.Hobbies)}, tem como genero literario favorito {aluno.GeneroLiterarioFavorito} e {aluno.InformacaoAdicional}
-                Base de leitura: {string.Join(" ", materiais)}
-
-                Formato JSON:
-                [
-                  {{
-                    'texto': 'string',
-                    'pontuacao': 0,
-                    'alternativas': [
-                      {{ 'texto': 'string', 'correta': true/false }},
-                      ...
-                    ]
-                  }}
-                ]
-                ";
-
-            var body = new
-            {
-                model = "gpt-4o",
-                temperature = 0.7,
-                messages = new[]
-                {
-            new { role = "system", content = "Você é um gerador de questionários escolares." },
-            new { role = "user", content = prompt }
-        }
-            };
-
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", dto.OpenAiKey);
-
-            var jsonContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions", jsonContent);
-            var responseString = await response.Content.ReadAsStringAsync();
-
-            using var doc = JsonDocument.Parse(responseString);
-            var content = doc.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .ToString();
-
             try
             {
-                var questoes = JsonSerializer.Deserialize<List<Questao>>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                var aluno = await _context.Aluno.FirstOrDefaultAsync(a => a.Id == dto.ListaIdAlunos.First());
+                if(aluno == null)
+                    throw new Exception("Aluno não encontrado com ID: " + dto.ListaIdAlunos.First());
 
-                return questoes ?? new List<Questao>();
+                var materiais = await _context.Material
+                    .Where(m => m.IdMateria == dto.IdMateria && !m.Excluido)
+                    .Select(m => m.Conteudo)
+                    .ToListAsync();
+
+                var prompt = $@"
+                    Crie 3 questões de múltipla escolha com 4 alternativas cada, sendo uma correta.
+                    Matéria: {dto.NomeMateria}
+                    Tema: {dto.TemaAtividade}
+                    Aluno: nascido em {aluno.DataNascimento}, tem como gênero literário favorito {aluno.GeneroLiterarioFavorito} e {aluno.InformacaoAdicional}
+                    Base de leitura: {string.Join(" ",materiais)}
+
+                    Formato JSON:
+                    [
+                      {{
+                        'texto': 'string',
+                        'pontuacao': 0,
+                        'alternativas': [
+                          {{ 'texto': 'string', 'correta': true/false }},
+                          ...
+                        ]
+                      }}
+                    ]
+                    ";
+
+                var body = new
+                {
+                    model = "gpt-4o",
+                    temperature = 0.7,
+                    messages = new[]
+                    {
+                new { role = "system", content = "Você é um gerador de questionários escolares." },
+                new { role = "user", content = prompt }
             }
-            catch (Exception ex)
+                };
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",dto.OpenAiKey);
+
+                var jsonContent = new StringContent(JsonSerializer.Serialize(body),Encoding.UTF8,"application/json");
+
+                HttpResponseMessage response;
+                try
+                {
+                    response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions",jsonContent);
+                }
+                catch(Exception ex)
+                {
+                    throw new Exception("Erro na requisição HTTP para a OpenAI: " + ex.Message);
+                }
+
+                var responseString = await response.Content.ReadAsStringAsync();
+
+                if(!response.IsSuccessStatusCode)
+                    throw new Exception("Erro da API OpenAI: " + response.StatusCode + " - " + responseString);
+
+                string content;
+                try
+                {
+                    using var doc = JsonDocument.Parse(responseString);
+                    content = doc.RootElement
+                        .GetProperty("choices")[0]
+                        .GetProperty("message")
+                        .GetProperty("content")
+                        .ToString();
+                }
+                catch(Exception ex)
+                {
+                    throw new Exception("Erro ao extrair o conteúdo da resposta JSON da OpenAI: " + ex.Message + "\nResposta bruta:\n" + responseString);
+                }
+
+                try
+                {
+                    if(content.StartsWith("```") && content.EndsWith("```"))
+                        content = content.Substring(3,content.Length - 6).Trim();
+
+                    var questoes = JsonSerializer.Deserialize<List<Questao>>(content,new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    return questoes ?? throw new Exception("A lista de questões retornada está vazia.");
+                }
+                catch(Exception ex)
+                {
+                    throw new Exception("Erro ao interpretar as questões retornadas pela IA: " + ex.Message + "\nConteúdo retornado:\n" + content);
+                }
+            }
+            catch(Exception geral)
             {
-                throw new Exception("Erro ao interpretar as questões retornadas pela IA: " + ex.Message + "\nConteúdo:\n" + content);
+                throw new Exception("Erro ao gerar questões automaticamente: " + geral.Message,geral);
             }
         }
+
     }
     public class TipoAtividadeDTO
     {
@@ -487,7 +527,6 @@ namespace ScholaAi.Controllers
         public string? NomeMateria { get; set; }
         public string? TemaAtividade { get; set; }
         public string? OpenAiKey { get; set; }
-        public string? UrlApiInterna { get; set; }
     }
 
     public class QuestaoDTO
