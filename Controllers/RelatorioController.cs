@@ -126,86 +126,97 @@ namespace ScholaAi.Controllers
 
             return Ok(listaRelatorios);
         }
-
         [HttpGet("relatorio_completo/{idAluno}")]
         public async Task<IActionResult> BaixarRelatorioCompleto(int idAluno)
         {
-            var atividades = await _context.AlunoAtividadeMateria
-                .Include(a => a.Atividade)
-                    .ThenInclude(at => at.Questoes)
-                        .ThenInclude(q => q.Alternativas)
-                .Where(a => a.IdAluno == idAluno && a.Atividade.Publicada)
-                .ToListAsync();
-
-            var anexosPdf = new List<byte[]>();
-
-            var pdfRelatorio = QuestPDF.Fluent.Document.Create(container =>
+            try
             {
-                foreach(var item in atividades)
+                var atividades = await _context.AlunoAtividadeMateria
+                    .Include(a => a.Atividade)
+                        .ThenInclude(at => at.Questoes)
+                            .ThenInclude(q => q.Alternativas)
+                    .Where(a => a.IdAluno == idAluno && a.Atividade.Publicada)
+                    .ToListAsync();
+
+                if(!atividades.Any())
+                    return NotFound("Nenhuma atividade encontrada para o aluno informado.");
+
+                var anexosPdf = new List<byte[]>();
+
+                var pdfRelatorio = QuestPDF.Fluent.Document.Create(container =>
                 {
-                    var atividade = item.Atividade;
-                    var base64 = atividade.ArquivoBase64;
-
-                    container.Page(page =>
+                    foreach(var item in atividades)
                     {
-                        page.Size(PageSizes.A4);
-                        page.Margin(20);
-                        page.DefaultTextStyle(x => x.FontSize(14));
+                        var atividade = item.Atividade;
+                        var base64 = atividade.ArquivoBase64;
 
-                        page.Content().Column(col =>
+                        container.Page(page =>
                         {
-                            col.Item().Text($"Atividade: {atividade.Nome}").Bold().FontSize(18);
+                            page.Size(PageSizes.A4);
+                            page.Margin(20);
+                            page.DefaultTextStyle(x => x.FontSize(14));
 
-                            if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("image"))
+                            page.Content().Column(col =>
                             {
-                                try
-                                {
-                                    var base64Data = base64.Split(',').Last();
-                                    var bytes = Convert.FromBase64String(base64Data);
-                                    col.Item().Image(bytes);
-                                }
-                                catch
-                                {
-                                    col.Item().Text("[Erro ao carregar imagem]");
-                                }
-                            }
+                                col.Item().Text($"Atividade: {atividade.Nome}").Bold().FontSize(18);
 
-                            if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("pdf"))
-                            {
-                                try
+                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("image"))
                                 {
-                                    var base64Data = base64.Split(',').Last();
-                                    var pdfBytes = Convert.FromBase64String(base64Data);
-                                    anexosPdf.Add(pdfBytes);
-                                }
-                                catch
-                                {
-                                    // log
-                                }
-                            }
-
-                            if(atividade.Questoes != null && atividade.Questoes.Any())
-                            {
-                                foreach(var questao in atividade.Questoes)
-                                {
-                                    col.Item().Text($"Questão: {questao.Texto}").Bold();
-                                    foreach(var alt in questao.Alternativas)
+                                    try
                                     {
-                                        col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
+                                        var base64Data = base64.Split(',').Last();
+                                        var bytes = Convert.FromBase64String(base64Data);
+                                        col.Item().Image(bytes);
+                                    }
+                                    catch
+                                    {
+                                        col.Item().Text("[Erro ao carregar imagem]");
                                     }
                                 }
-                            }
 
-                            col.Item().Text($"Pontuação Obtida: {item.Pontuacao ?? 0}").Italic();
+                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("pdf"))
+                                {
+                                    try
+                                    {
+                                        var base64Data = base64.Split(',').Last();
+                                        var pdfBytes = Convert.FromBase64String(base64Data);
+                                        anexosPdf.Add(pdfBytes);
+                                    }
+                                    catch
+                                    {
+                                        // log 
+                                    }
+                                }
+
+                                if(atividade.Questoes != null && atividade.Questoes.Any())
+                                {
+                                    foreach(var questao in atividade.Questoes)
+                                    {
+                                        col.Item().Text($"Questão: {questao.Texto}").Bold();
+                                        foreach(var alt in questao.Alternativas)
+                                        {
+                                            col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
+                                        }
+                                    }
+                                }
+
+                                col.Item().Text($"Pontuação Obtida: {item.Pontuacao ?? 0}").Italic();
+                            });
                         });
-                    });
-                }
-            }).GeneratePdf();
+                    }
+                }).GeneratePdf();
 
-            var pdfFinal = MesclarPdfComAnexos(pdfRelatorio,anexosPdf);
+                var pdfFinal = MesclarPdfComAnexos(pdfRelatorio,anexosPdf);
 
-            return File(pdfFinal,"application/pdf",$"RelatorioCompleto_{idAluno}.pdf");
+                return File(pdfFinal,"application/pdf",$"RelatorioCompleto_{idAluno}.pdf");
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Erro ao gerar relatório: " + ex.Message);
+                return StatusCode(500,$"Erro interno: {ex.Message}");
+            }
         }
+
         private byte[] MesclarPdfComAnexos(byte[] pdfPrincipal,List<byte[]> anexosPdf)
         {
             using var outputDocument = new PdfDocument();
