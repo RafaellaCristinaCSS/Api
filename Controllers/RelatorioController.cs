@@ -1,6 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ScholaAi.Dados;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata;
+using PdfSharpCore.Pdf.IO;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace ScholaAi.Controllers
 {
@@ -121,7 +126,112 @@ namespace ScholaAi.Controllers
             return Ok(listaRelatorios);
         }
 
+        public async Task<IActionResult> BaixarRelatorioCompleto(int idAluno)
+        {
+            var atividades = await _context.AlunoAtividadeMateria
+                .Include(a => a.Atividade)
+                    .ThenInclude(at => at.Questoes)
+                        .ThenInclude(q => q.Alternativas)
+                .Where(a => a.IdAluno == idAluno && a.Atividade.Publicada)
+                .ToListAsync();
 
+            var anexosPdf = new List<byte[]>();
+
+            var pdfRelatorio = QuestPDF.Fluent.Document.Create(container =>
+            {
+                {
+                    foreach(var item in atividades)
+                    {
+                        var atividade = item.Atividade;
+                        var base64 = atividade.ArquivoBase64;
+
+                        container.Page(page =>
+                        {
+                            page.Size(PageSizes.A4);
+                            page.Margin(20);
+                            page.DefaultTextStyle(x => x.FontSize(14));
+
+                            page.Content().Column(col =>
+                            {
+                                col.Item().Text($"Atividade: {atividade.Nome}").Bold().FontSize(18);
+
+                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("image"))
+                                {
+                                    try
+                                    {
+                                        var base64Data = base64.Split(',').Last();
+                                        var bytes = Convert.FromBase64String(base64Data);
+                                        col.Item().Image(bytes);
+                                    }
+                                    catch
+                                    {
+                                        col.Item().Text("[Erro ao carregar imagem]");
+                                    }
+                                }
+
+                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("pdf"))
+                                {
+                                    try
+                                    {
+                                        var base64Data = base64.Split(',').Last();
+                                        var pdfBytes = Convert.FromBase64String(base64Data);
+                                        anexosPdf.Add(pdfBytes);
+                                    }
+                                    catch
+                                    {
+                                        // tratar erro
+                                    }
+                                }
+                                if(atividade.Questoes != null && atividade.Questoes.Any())
+                                {
+                                    foreach(var questao in atividade.Questoes)
+                                    {
+                                        col.Item().Text($"Questão: {questao.Texto}").Bold();
+                                        foreach(var alt in questao.Alternativas)
+                                        {
+                                            col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
+                                        }
+                                    }
+                                }
+
+                                col.Item().Text($"Pontuação Obtida: {item.Pontuacao ?? 0}").Italic();
+                            });
+                        });
+                    }
+                }
+            }).GeneratePdf();
+
+            var pdfFinal = MesclarPdfComAnexos(pdfRelatorio,anexosPdf);
+
+            return File(pdfFinal,"application/pdf","RelatorioCompleto.pdf");
+        }
+        public byte[] MesclarPdfComAnexos(byte[] pdfPrincipal,List<byte[]> anexosPdf)
+        {
+            using var outputDocument = new PdfSharpCore.Pdf.PdfDocument();
+
+            using(var stream = new MemoryStream(pdfPrincipal))
+            {
+                var inputDoc = PdfReader.Open(stream,PdfDocumentOpenMode.Import);
+                for(int i = 0;i < inputDoc.PageCount;i++)
+                {
+                    outputDocument.AddPage(inputDoc.Pages[i]);
+                }
+            }
+
+            foreach(var pdfAnexo in anexosPdf)
+            {
+                using var stream = new MemoryStream(pdfAnexo);
+                var inputDoc = PdfReader.Open(stream,PdfDocumentOpenMode.Import);
+                for(int i = 0;i < inputDoc.PageCount;i++)
+                {
+                    outputDocument.AddPage(inputDoc.Pages[i]);
+                }
+            }
+
+            using var outputStream = new MemoryStream();
+            outputDocument.Save(outputStream);
+            return outputStream.ToArray();
+        }
     }
     public class RelatorioMateriaDto
     {
