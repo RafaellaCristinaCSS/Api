@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ScholaAi.Dados;
 using ScholaAi.Models;
 
@@ -14,6 +15,19 @@ namespace ScholaAi.Controllers
         {
             _context = context;
         }
+        [HttpGet("{idAgente}")]
+        public async Task<IActionResult> ObterBlocoPorAgente(int idAgente)
+        {
+            var blocoNotas = await _context.BlocoNotas
+                .FirstOrDefaultAsync(b => b.IdAgente == idAgente);
+
+            if(blocoNotas == null)
+            {
+                return NotFound($"Bloco de notas não encontrado para o agente com ID {idAgente}.");
+            }
+
+            return Ok(blocoNotas);
+        }
 
         [HttpPost]
         public async Task<IActionResult> AdicionarAnotacao([FromBody] BlocoNotasDTO blocoNotasDto)
@@ -22,6 +36,7 @@ namespace ScholaAi.Controllers
       
             var blocoNotas = new BlocoNotas
             {
+                IdAgente = blocoNotasDto.IdAgente,
                 Anotacao = blocoNotasDto.Anotacao,
             };
 
@@ -33,6 +48,7 @@ namespace ScholaAi.Controllers
     }
     public class BlocoNotasDTO
     {
+        public int IdAgente { get; set; }
         public string Anotacao { get; set; }
     }
 }
