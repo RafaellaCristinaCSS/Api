@@ -1,8 +1,12 @@
-﻿namespace ScholaAi.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ScholaAi.Models
 {
     public class VariavelGlobal
     {
-        public string BaseUrlFront { get; set; }
-        public string BaseUrlBack { get; set; }
+        [Key]
+        public int Id { get; set; }
+        public string Nome { get; set; }
+        public string Valor { get; set; }
     }
 }
