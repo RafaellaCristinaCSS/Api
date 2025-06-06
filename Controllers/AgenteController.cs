@@ -35,7 +35,12 @@ namespace ScholaAi.Controllers
             {
                 return BadRequest("Login e senha são obrigatórios.");
             }
+            var existingUser = await _context.Agente
+                .FirstOrDefaultAsync(a => a.Login == agenteDto.Login);
 
+            if(existingUser != null)
+                return BadRequest(new{Message = "Este login já está sendo usado por outra pessoa."});
+            
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -146,6 +151,7 @@ namespace ScholaAi.Controllers
             int? nivelEducador = null;
             int? idAluno = null;
             int? idEducador = null;
+            string nome = "";
 
             if(agente.IdTipoAgente == 1)
             {
@@ -216,7 +222,8 @@ namespace ScholaAi.Controllers
             {
                 Token = tokenString,
                 IdAluno = idAluno,
-                IdEducador = idEducador
+                IdEducador = idEducador,
+                Nome = nome
             });
         }
 
