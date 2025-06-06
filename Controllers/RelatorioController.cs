@@ -131,6 +131,8 @@ namespace ScholaAi.Controllers
         {
             try
             {
+                QuestPDF.Settings.License = LicenseType.Community;
+
                 var atividades = await _context.AlunoAtividadeMateria
                     .Include(a => a.Atividade)
                         .ThenInclude(at => at.Questoes)
