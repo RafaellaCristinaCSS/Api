@@ -28,22 +28,31 @@ namespace ScholaAi.Controllers
 
             return Ok(blocoNotas);
         }
-
         [HttpPost]
-        public async Task<IActionResult> AdicionarAnotacao([FromBody] BlocoNotasDTO blocoNotasDto)
+        public async Task<IActionResult> AdicionarOuAtualizarAnotacao([FromBody] BlocoNotasDTO blocoNotasDto)
         {
             if(string.IsNullOrEmpty(blocoNotasDto.Anotacao)) blocoNotasDto.Anotacao = "";
-      
-            var blocoNotas = new BlocoNotas
+            var blocoExistente = await _context.BlocoNotas
+                .FirstOrDefaultAsync(b => b.IdAgente == blocoNotasDto.IdAgente);
+
+            if(blocoExistente != null)
+            {
+                blocoExistente.Anotacao = blocoNotasDto.Anotacao;
+                _context.BlocoNotas.Update(blocoExistente);
+                await _context.SaveChangesAsync();
+
+                return Ok(blocoExistente);
+            }
+
+            var novoBloco = new BlocoNotas
             {
                 IdAgente = blocoNotasDto.IdAgente,
                 Anotacao = blocoNotasDto.Anotacao,
             };
 
-            _context.BlocoNotas.Add(blocoNotas);
+            _context.BlocoNotas.Add(novoBloco);
             await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(AdicionarAnotacao),new { id = blocoNotas.Id },blocoNotas);
+            return CreatedAtAction(nameof(AdicionarOuAtualizarAnotacao),new { id = novoBloco.Id },novoBloco);
         }
     }
     public class BlocoNotasDTO
