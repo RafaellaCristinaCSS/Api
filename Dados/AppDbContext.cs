@@ -15,6 +15,7 @@ namespace ScholaAi.Dados
         public DbSet<Atividade> Atividade { get; set; }
         public DbSet<Educador> Educador { get; set; }
         public DbSet<GeneroLiterario> GeneroLiterario { get; set; }
+        public DbSet<BlocoNotas> BlocoNotas { get; set; }
         public DbSet<Hobby> Hobby { get; set; }
         public DbSet<Materia> Materia { get; set; }
         public DbSet<Material> Material { get; set; }
