@@ -6,6 +6,7 @@ using PdfSharpCore.Pdf.IO;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using PdfSharpCore.Pdf;
 
 namespace ScholaAi.Controllers
 {
@@ -126,6 +127,7 @@ namespace ScholaAi.Controllers
             return Ok(listaRelatorios);
         }
 
+        [HttpGet("relatorio_completo/{idAluno}")]
         public async Task<IActionResult> BaixarRelatorioCompleto(int idAluno)
         {
             var atividades = await _context.AlunoAtividadeMateria
@@ -139,75 +141,74 @@ namespace ScholaAi.Controllers
 
             var pdfRelatorio = QuestPDF.Fluent.Document.Create(container =>
             {
+                foreach(var item in atividades)
                 {
-                    foreach(var item in atividades)
+                    var atividade = item.Atividade;
+                    var base64 = atividade.ArquivoBase64;
+
+                    container.Page(page =>
                     {
-                        var atividade = item.Atividade;
-                        var base64 = atividade.ArquivoBase64;
+                        page.Size(PageSizes.A4);
+                        page.Margin(20);
+                        page.DefaultTextStyle(x => x.FontSize(14));
 
-                        container.Page(page =>
+                        page.Content().Column(col =>
                         {
-                            page.Size(PageSizes.A4);
-                            page.Margin(20);
-                            page.DefaultTextStyle(x => x.FontSize(14));
+                            col.Item().Text($"Atividade: {atividade.Nome}").Bold().FontSize(18);
 
-                            page.Content().Column(col =>
+                            if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("image"))
                             {
-                                col.Item().Text($"Atividade: {atividade.Nome}").Bold().FontSize(18);
-
-                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("image"))
+                                try
                                 {
-                                    try
+                                    var base64Data = base64.Split(',').Last();
+                                    var bytes = Convert.FromBase64String(base64Data);
+                                    col.Item().Image(bytes);
+                                }
+                                catch
+                                {
+                                    col.Item().Text("[Erro ao carregar imagem]");
+                                }
+                            }
+
+                            if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("pdf"))
+                            {
+                                try
+                                {
+                                    var base64Data = base64.Split(',').Last();
+                                    var pdfBytes = Convert.FromBase64String(base64Data);
+                                    anexosPdf.Add(pdfBytes);
+                                }
+                                catch
+                                {
+                                    // log
+                                }
+                            }
+
+                            if(atividade.Questoes != null && atividade.Questoes.Any())
+                            {
+                                foreach(var questao in atividade.Questoes)
+                                {
+                                    col.Item().Text($"Questão: {questao.Texto}").Bold();
+                                    foreach(var alt in questao.Alternativas)
                                     {
-                                        var base64Data = base64.Split(',').Last();
-                                        var bytes = Convert.FromBase64String(base64Data);
-                                        col.Item().Image(bytes);
-                                    }
-                                    catch
-                                    {
-                                        col.Item().Text("[Erro ao carregar imagem]");
+                                        col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
                                     }
                                 }
+                            }
 
-                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("pdf"))
-                                {
-                                    try
-                                    {
-                                        var base64Data = base64.Split(',').Last();
-                                        var pdfBytes = Convert.FromBase64String(base64Data);
-                                        anexosPdf.Add(pdfBytes);
-                                    }
-                                    catch
-                                    {
-                                        // tratar erro
-                                    }
-                                }
-                                if(atividade.Questoes != null && atividade.Questoes.Any())
-                                {
-                                    foreach(var questao in atividade.Questoes)
-                                    {
-                                        col.Item().Text($"Questão: {questao.Texto}").Bold();
-                                        foreach(var alt in questao.Alternativas)
-                                        {
-                                            col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
-                                        }
-                                    }
-                                }
-
-                                col.Item().Text($"Pontuação Obtida: {item.Pontuacao ?? 0}").Italic();
-                            });
+                            col.Item().Text($"Pontuação Obtida: {item.Pontuacao ?? 0}").Italic();
                         });
-                    }
+                    });
                 }
             }).GeneratePdf();
 
             var pdfFinal = MesclarPdfComAnexos(pdfRelatorio,anexosPdf);
 
-            return File(pdfFinal,"application/pdf","RelatorioCompleto.pdf");
+            return File(pdfFinal,"application/pdf",$"RelatorioCompleto_{idAluno}.pdf");
         }
-        public byte[] MesclarPdfComAnexos(byte[] pdfPrincipal,List<byte[]> anexosPdf)
+        private byte[] MesclarPdfComAnexos(byte[] pdfPrincipal,List<byte[]> anexosPdf)
         {
-            using var outputDocument = new PdfSharpCore.Pdf.PdfDocument();
+            using var outputDocument = new PdfDocument();
 
             using(var stream = new MemoryStream(pdfPrincipal))
             {
@@ -233,6 +234,12 @@ namespace ScholaAi.Controllers
             return outputStream.ToArray();
         }
     }
+    public class PdfMergeRequest
+    {
+        public byte[] PdfPrincipal { get; set; }
+        public List<byte[]> AnexosPdf { get; set; }
+    }
+
     public class RelatorioMateriaDto
     {
         public int IdMateria { get; set; }
