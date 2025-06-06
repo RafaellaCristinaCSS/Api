@@ -13,9 +13,10 @@ namespace ScholaAi.Dados
         public DbSet<AlunoMateria> AlunoMateria { get; set; }
         public DbSet<AlunoHobby> AlunoHobby { get; set; }
         public DbSet<Atividade> Atividade { get; set; }
+        public DbSet<BlocoNotas> BlocoNotas { get; set; }
+        public DbSet<Config> Configuracoes { get; set; }
         public DbSet<Educador> Educador { get; set; }
         public DbSet<GeneroLiterario> GeneroLiterario { get; set; }
-        public DbSet<BlocoNotas> BlocoNotas { get; set; }
         public DbSet<Hobby> Hobby { get; set; }
         public DbSet<Materia> Materia { get; set; }
         public DbSet<Material> Material { get; set; }
@@ -23,6 +24,17 @@ namespace ScholaAi.Dados
         public DbSet<Questao> Questao { get; set; }
         public DbSet<Alternativa> Alternativa { get; set; }  
         public DbSet<TipoAtividade> TipoAtividade { get; set; }
+        public DbSet<VariavelGlobal> VariavelGlobal { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            var config = modelBuilder.Entity<Config>();
+            config.ToTable("Config");
+
+            config.Property<string>("Chave")
+                  .HasColumnName("Chave")
+                  .IsRequired();
+        }
     }
 
 
