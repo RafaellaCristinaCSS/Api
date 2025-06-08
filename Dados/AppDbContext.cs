@@ -25,16 +25,6 @@ namespace ScholaAi.Dados
         public DbSet<Alternativa> Alternativa { get; set; }  
         public DbSet<TipoAtividade> TipoAtividade { get; set; }
         public DbSet<VariavelGlobal> VariavelGlobal { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            var config = modelBuilder.Entity<Config>();
-            config.ToTable("Config");
-
-            config.Property<string>("Chave")
-                  .HasColumnName("Chave")
-                  .IsRequired();
-        }
     }
 
 

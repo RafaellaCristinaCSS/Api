@@ -12,6 +12,7 @@ namespace ScholaAi.Models
         public int IdMateria { get; set; }
         public int IdAtividade { get; set; }
         public float? Pontuacao { get; set; }
+        public DateOnly? Data { get; set; }
 
         [ForeignKey(nameof(IdAluno))]
         public Aluno Aluno { get; set; }

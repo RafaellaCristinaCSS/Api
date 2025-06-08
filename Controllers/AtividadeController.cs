@@ -176,7 +176,11 @@ namespace ScholaAi.Controllers
                 {
                     IdAluno = idAluno,
                     IdAtividade = atividade.Id,
-                    IdMateria = atividadeDto.IdMateria
+                    IdMateria = atividadeDto.IdMateria,
+                    Pontuacao = (atividadeDto.IdTipoAtividade == 2 || atividadeDto.IdTipoAtividade == 3)
+                    ? atividadeDto.Pontuacao:0,
+                    Data = (atividadeDto.IdTipoAtividade == 2 || atividadeDto.IdTipoAtividade == 3)
+                    ? DateOnly.FromDateTime(DateTime.Now) : null
                 };
                 _context.AlunoAtividadeMateria.Add(relacao);
             }
@@ -382,7 +386,8 @@ namespace ScholaAi.Controllers
                     IdAluno = idAluno,
                     IdAtividade = respostaAlunoDto.AtividadeId,
                     IdMateria = respostaAlunoDto.MateriaId,
-                    Pontuacao = pontuacaoTotal
+                    Pontuacao = pontuacaoTotal,
+                    Data = DateOnly.FromDateTime(DateTime.Now)
                 };
                 _context.AlunoAtividadeMateria.Add(alunoAtividade);
             }
@@ -445,7 +450,10 @@ namespace ScholaAi.Controllers
                 };
 
                 using var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",dto.OpenAiKey);
+                string OpenIa = _context.Configuracoes
+                    .FirstOrDefault(c => c.Nome == "OpenIa")?.Chave;
+
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",OpenIa);
 
                 var jsonContent = new StringContent(JsonSerializer.Serialize(body),Encoding.UTF8,"application/json");
 
@@ -541,7 +549,6 @@ namespace ScholaAi.Controllers
 
         public string? NomeMateria { get; set; }
         public string? TemaAtividade { get; set; }
-        public string? OpenAiKey { get; set; }
     }
 
     public class QuestaoDTO
