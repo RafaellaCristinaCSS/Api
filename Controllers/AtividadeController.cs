@@ -113,25 +113,41 @@ namespace ScholaAi.Controllers
                 .Select(e => e.Id)
                 .FirstOrDefaultAsync();
 
-            if (idProfessor == 0)
+            if(idProfessor == 0)
                 return BadRequest("Professor não encontrado para o agente informado. " + atividadeDto.IdAgente);
 
+            Atividade atividade;
+
+            try
+            {
+                atividade = await MontarAtividade(atividadeDto,idProfessor);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500,"Erro ao montar atividade: " + ex.Message);
+            }
+
+            await SalvarAtividadeNoBanco(atividade,atividadeDto);
+            return CreatedAtAction(nameof(AdicionarAtividade),new { id = atividade.Id },atividade);
+        }
+        private async Task<Atividade> MontarAtividade(AtividadeDTO dto,int idProfessor)
+        {
             var atividade = new Atividade
             {
-                Nome = atividadeDto.Nome,
-                IdMateria = atividadeDto.IdMateria,
+                Nome = dto.Nome,
+                IdMateria = dto.IdMateria,
                 IdProfessor = idProfessor,
-                IdTipoAtividade = atividadeDto.IdTipoAtividade,
-                Pontuacao = atividadeDto.Pontuacao,
-                Publicada = atividadeDto.Publicada
+                IdTipoAtividade = dto.IdTipoAtividade,
+                Pontuacao = dto.Pontuacao,
+                Publicada = dto.Publicada
             };
 
-            switch (atividadeDto.IdTipoAtividade)
+            switch(dto.IdTipoAtividade)
             {
                 case 1:
-                    if (atividadeDto.Questoes?.Any() == true)
+                    if(dto.Questoes?.Any() == true)
                     {
-                        atividade.Questoes = atividadeDto.Questoes.Select(q => new Questao
+                        atividade.Questoes = dto.Questoes.Select(q => new Questao
                         {
                             Texto = q.Texto,
                             Pontuacao = q.Pontuacao,
@@ -146,47 +162,54 @@ namespace ScholaAi.Controllers
 
                 case 2:
                 case 3:
-                    atividade.TextoLeitura = atividadeDto.TextoLeitura;
-                    atividade.ArquivoBase64 = atividadeDto.ArquivoBase64;
-                    atividade.NomeArquivo = atividadeDto.NomeArquivo;
-                    break;
-
-                case 4:
-                    try
-                    {
-                        var questoesGeradas = await GerarQuestoesAutomaticamente(atividadeDto);
-                        if(questoesGeradas == null)
-                            return BadRequest("Erro ao gerar questões automaticamente.");
-
-                        atividade.Questoes = questoesGeradas;
-                    }
-                    catch(Exception ex)
-                    {
-                        return StatusCode(500,"Erro ao gerar questões automaticamente: " + ex.Message);
-                    }
+                    atividade.TextoLeitura = dto.TextoLeitura;
+                    atividade.ArquivoBase64 = dto.ArquivoBase64;
+                    atividade.NomeArquivo = dto.NomeArquivo;
                     break;
             }
 
+            return atividade;
+        }
+        private async Task SalvarAtividadeNoBanco(Atividade atividade,AtividadeDTO dto)
+        {
             _context.Atividade.Add(atividade);
             await _context.SaveChangesAsync();
 
-            foreach (var idAluno in atividadeDto.ListaIdAlunos)
+            foreach(var idAluno in dto.ListaIdAlunos)
             {
                 var relacao = new AlunoAtividadeMateria
                 {
                     IdAluno = idAluno,
                     IdAtividade = atividade.Id,
-                    IdMateria = atividadeDto.IdMateria,
-                    Pontuacao = (atividadeDto.IdTipoAtividade == 2 || atividadeDto.IdTipoAtividade == 3)
-                    ? atividadeDto.Pontuacao:0,
-                    Data = (atividadeDto.IdTipoAtividade == 2 || atividadeDto.IdTipoAtividade == 3)
-                    ? DateOnly.FromDateTime(DateTime.Now) : null
+                    IdMateria = dto.IdMateria,
+                    Pontuacao = (dto.IdTipoAtividade == 2 || dto.IdTipoAtividade == 3)
+                        ? dto.Pontuacao : 0,
+                    Data = (dto.IdTipoAtividade == 2 || dto.IdTipoAtividade == 3)
+                        ? DateOnly.FromDateTime(DateTime.Now) : null
                 };
+
                 _context.AlunoAtividadeMateria.Add(relacao);
             }
 
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(AdicionarAtividade), new { id = atividade.Id }, atividade);
+        }
+
+        [HttpPost("gerarQuestoesAutomaticas")]
+        private async Task<List<Questao>> GerarQuestoesAutomatico(AtividadeDTO dto)
+        {
+            try
+            {
+                var questoesGeradas = await GerarQuestoesAutomaticamente(dto); 
+
+                if(questoesGeradas == null)
+                    throw new Exception("Erro ao gerar questões automaticamente.");
+
+                return questoesGeradas;
+            }
+            catch(Exception ex)
+            {
+                throw new Exception("Erro ao gerar questões automaticamente: " + ex.Message);
+            }
         }
 
 
