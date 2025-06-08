@@ -24,9 +24,6 @@ namespace ScholaAi.Controllers
                 return BadRequest("O conteúdo do material é obrigatório.");
             }
 
-            // Verifica se o Educador existe antes de criar o material
-            //var educadorExiste = await _context.Educador.AnyAsync(e => e.Id == materialDto.IdEducadorCriador);
-
             var idEducador = await _context.Educador
             .Where(e => e.IdAgente == materialDto.IdAgente)
             .Select(e => e.Id)
@@ -92,15 +89,26 @@ namespace ScholaAi.Controllers
         public async Task<IActionResult> BuscarMateriais()
         {
             var materiais = await _context.Material
-                .Where(m => m.Excluido == false)
-                .Select(m => new
-                {
-                    m.Id,
-                    m.Conteudo,
-                    m.IdMateria,
-                    m.IdEducadorCriador
-                })
-                .ToListAsync();
+            .Where(m => m.Excluido == false)
+            .Select(m => new
+            {
+                m.Id,
+                m.Conteudo,
+                m.IdMateria,
+                NomeMateria = _context.Materia
+                    .Where(mt => mt.Id == m.IdMateria)
+                    .Select(mt => mt.Nome)
+                    .FirstOrDefault(),
+
+                m.IdEducadorCriador,
+                NomeEducador = (
+                    from e in _context.Educador
+                    join a in _context.Agente on e.IdAgente equals a.Id
+                    where e.Id == m.IdEducadorCriador
+                    select a.Nome
+                ).FirstOrDefault()
+            })
+            .ToListAsync();
 
             return Ok(materiais);
         }
