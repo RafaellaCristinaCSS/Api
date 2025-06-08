@@ -23,7 +23,8 @@ namespace ScholaAi.Controllers
 
             if(blocoNotas == null)
             {
-                return NotFound($"Bloco de notas não encontrado para o agente com ID {idAgente}.");
+                BlocoNotas bloco = new BlocoNotas { Anotacao = "" };
+                return Ok(bloco);
             }
 
             return Ok(blocoNotas);

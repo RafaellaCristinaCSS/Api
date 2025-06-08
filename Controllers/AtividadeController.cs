@@ -195,7 +195,7 @@ namespace ScholaAi.Controllers
         }
 
         [HttpPost("gerarQuestoesAutomaticas")]
-        private async Task<List<Questao>> GerarQuestoesAutomatico(AtividadeDTO dto)
+        public async Task<List<Questao>> GerarQuestoesAutomatico(AtividadeDTO dto)
         {
             try
             {
