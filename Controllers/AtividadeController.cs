@@ -195,7 +195,7 @@ namespace ScholaAi.Controllers
         }
 
         [HttpPost("gerarQuestoesAutomaticas")]
-        public async Task<List<Questao>> GerarQuestoesAutomatico(AtividadeDTO dto)
+        public async Task<IActionResult> GerarQuestoesAutomatico(AtividadeDTO dto)
         {
             try
             {
@@ -204,7 +204,7 @@ namespace ScholaAi.Controllers
                 if(questoesGeradas == null)
                     throw new Exception("Erro ao gerar questões automaticamente.");
 
-                return questoesGeradas;
+                return  questoesGeradas;
             }
             catch(Exception ex)
             {
@@ -428,18 +428,33 @@ namespace ScholaAi.Controllers
                 PontuacaoFinal = pontuacaoTotal
             });
         }
-        private async Task<List<Questao>> GerarQuestoesAutomaticamente(AtividadeDTO dto)
+        private async Task<IActionResult> GerarQuestoesAutomaticamente(AtividadeDTO dto)
         {
             try
             {
                 var aluno = await _context.Aluno.FirstOrDefaultAsync(a => a.Id == dto.ListaIdAlunos.First());
                 if(aluno == null)
-                    throw new Exception("Aluno não encontrado com ID: " + dto.ListaIdAlunos.First());
+                {
+                    return NotFound(new
+                    {
+                        mensagem = "Não foi possivel encontrar o aluno informado",
+                        idMateria = dto.IdMateria
+                    });
+                }
 
                 var materiais = await _context.Material
                     .Where(m => m.IdMateria == dto.IdMateria && !m.Excluido)
                     .Select(m => m.Conteudo)
                     .ToListAsync();
+
+                if(materiais == null || !materiais.Any())
+                {
+                    return NotFound(new
+                    {
+                        mensagem = "Não há nenhum material disponível para a matéria informada.",
+                        idMateria = dto.IdMateria
+                    });
+                }
 
                 var prompt = $@"
                     Crie 3 questões de múltipla escolha com 4 alternativas cada, sendo uma correta.
@@ -534,8 +549,7 @@ namespace ScholaAi.Controllers
                     {
                         PropertyNameCaseInsensitive = true
                     });
-
-                    return questoes ?? throw new Exception("A lista de questões retornada está vazia.");
+                    return Ok(questoes) ?? throw new Exception("A lista de questões retornada está vazia.");
                 }
                 catch(Exception ex)
                 {
