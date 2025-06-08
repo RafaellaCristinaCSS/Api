@@ -7,6 +7,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using PdfSharpCore.Pdf;
+using System.IO.Compression;
 
 namespace ScholaAi.Controllers
 {
@@ -132,85 +133,104 @@ namespace ScholaAi.Controllers
             try
             {
                 QuestPDF.Settings.License = LicenseType.Community;
-
-                var atividades = await _context.AlunoAtividadeMateria
-                    .Include(a => a.Atividade)
-                        .ThenInclude(at => at.Questoes)
-                            .ThenInclude(q => q.Alternativas)
-                    .Where(a => a.IdAluno == idAluno && a.Atividade.Publicada)
-                    .ToListAsync();
+                var atividades = await (
+                    from a in _context.AlunoAtividadeMateria
+                    join at in _context.Atividade on a.IdAtividade equals at.Id
+                    join tipo in _context.TipoAtividade on at.IdTipoAtividade equals tipo.Id
+                    where a.IdAluno == idAluno
+                        && at.Publicada
+                        && a.Pontuacao != null
+                    select new
+                    {
+                        Id = a.Id,
+                        AlunoAtividade = a,
+                        Atividade = at,
+                        TipoAtividadeNome = tipo.Nome,
+                        Pontuacao = a.Pontuacao,
+                        Questoes = at.Questoes,
+                        Data = a.Data
+                    }
+                ).ToListAsync();
 
                 if(!atividades.Any())
-                    return NotFound("Nenhuma atividade encontrada para o aluno informado.");
+                    return NotFound("Nenhuma atividade encontrada com pontuação.");
 
-                var anexosPdf = new List<byte[]>();
-
-                var pdfRelatorio = QuestPDF.Fluent.Document.Create(container =>
+                var zipStream = new MemoryStream();
+                using(var archive = new ZipArchive(zipStream,ZipArchiveMode.Create,true))
                 {
                     foreach(var item in atividades)
                     {
                         var atividade = item.Atividade;
-                        var base64 = atividade.ArquivoBase64;
+                        var tipoNome = item.TipoAtividadeNome ?? "Desconhecido";
+                        var dataAtividade = item.Data.ToString();
 
-                        container.Page(page =>
+                        var nomeArquivo = $"Atividade_{atividade.Nome} - {tipoNome} - {dataAtividade}.pdf";
+                        var anexosPdf = new List<byte[]>();
+
+                        var pdfBytes = QuestPDF.Fluent.Document.Create(container =>
                         {
-                            page.Size(PageSizes.A4);
-                            page.Margin(20);
-                            page.DefaultTextStyle(x => x.FontSize(14));
-
-                            page.Content().Column(col =>
+                            container.Page(page =>
                             {
-                                col.Item().Text($"Atividade: {atividade.Nome}").Bold().FontSize(18);
+                                page.Size(PageSizes.A4);
+                                page.Margin(20);
+                                page.DefaultTextStyle(x => x.FontSize(14));
 
-                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("image"))
+                                page.Content().Column(col =>
                                 {
-                                    try
-                                    {
-                                        var base64Data = base64.Split(',').Last();
-                                        var bytes = Convert.FromBase64String(base64Data);
-                                        col.Item().Image(bytes);
-                                    }
-                                    catch
-                                    {
-                                        col.Item().Text("[Erro ao carregar imagem]");
-                                    }
-                                }
+                                    col.Item().Text($"Atividade: {atividade.Nome} - {tipoNome}").Bold().FontSize(18);
+                                    col.Item().Text($"Data: {dataAtividade}");
 
-                                if(!string.IsNullOrWhiteSpace(base64) && base64.Contains("pdf"))
-                                {
-                                    try
+                                    if(!string.IsNullOrWhiteSpace(atividade.ArquivoBase64))
                                     {
-                                        var base64Data = base64.Split(',').Last();
-                                        var pdfBytes = Convert.FromBase64String(base64Data);
-                                        anexosPdf.Add(pdfBytes);
-                                    }
-                                    catch
-                                    {
-                                        // log 
-                                    }
-                                }
-
-                                if(atividade.Questoes != null && atividade.Questoes.Any())
-                                {
-                                    foreach(var questao in atividade.Questoes)
-                                    {
-                                        col.Item().Text($"Questão: {questao.Texto}").Bold();
-                                        foreach(var alt in questao.Alternativas)
+                                        if(atividade.ArquivoBase64.Contains("image"))
                                         {
-                                            col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
+                                            try
+                                            {
+                                                var base64Data = atividade.ArquivoBase64.Split(',').Last();
+                                                var bytes = Convert.FromBase64String(base64Data);
+                                                col.Item().Image(bytes);
+                                            }
+                                            catch
+                                            {
+                                                col.Item().Text("[Erro ao carregar imagem]");
+                                            }
+                                        }
+                                        else if(atividade.ArquivoBase64.Contains("pdf"))
+                                        {
+                                           var base64Data = atividade.ArquivoBase64.Split(',').Last();
+                                           var pdfFileBytes = Convert.FromBase64String(base64Data);
+                                           anexosPdf.Add(pdfFileBytes); 
                                         }
                                     }
-                                }
 
-                                col.Item().Text($"Pontuação Obtida: {item.Pontuacao ?? 0}").Italic();
+                                    if(atividade.Questoes != null && atividade.Questoes.Any())
+                                    {
+                                        foreach(var questao in atividade.Questoes)
+                                        {
+                                            col.Item().Text($"Questão: {questao.Texto}").Bold();
+                                            foreach(var alt in questao.Alternativas)
+                                            {
+                                                col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
+                                            }
+                                        }
+                                    }
+
+                                    col.Item().Text($"Pontuação Obtida: {item.Pontuacao ?? 0}").Italic();
+                                });
                             });
-                        });
+                        }).GeneratePdf();
+
+                        if(anexosPdf.Any())
+                            pdfBytes = MesclarPdfComAnexos(pdfBytes,anexosPdf);
+
+                        var entry = archive.CreateEntry($"Atividade_{item.Id}.pdf");
+                        using var entryStream = entry.Open();
+                        await entryStream.WriteAsync(pdfBytes,0,pdfBytes.Length);
                     }
-                }).GeneratePdf();
+                }
 
-                var pdfFinal = MesclarPdfComAnexos(pdfRelatorio,anexosPdf);
-
-                return File(pdfFinal,"application/pdf",$"RelatorioCompleto_{idAluno}.pdf");
+                zipStream.Position = 0;
+                return File(zipStream.ToArray(),"application/zip",$"RelatorioCompleto_{idAluno}.zip");
             }
             catch(Exception ex)
             {
@@ -218,6 +238,7 @@ namespace ScholaAi.Controllers
                 return StatusCode(500,$"Erro interno: {ex.Message}");
             }
         }
+
 
         private byte[] MesclarPdfComAnexos(byte[] pdfPrincipal,List<byte[]> anexosPdf)
         {
