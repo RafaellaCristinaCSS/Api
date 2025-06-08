@@ -8,6 +8,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using PdfSharpCore.Pdf;
 using System.IO.Compression;
+using ScholaAi.Models;
 
 namespace ScholaAi.Controllers
 {
@@ -30,7 +31,8 @@ namespace ScholaAi.Controllers
                 .Include(a => a.Materia)
                 .Where(a => a.IdAluno == idAluno)
                 .Where(a => a.Atividade.Publicada == true)
-                .ToListAsync();
+                .Where(a => a.Atividade.Pontuacao != null)
+            .ToListAsync();
 
             var relatorio = dados
                 .GroupBy(d => new { d.IdMateria,d.Materia.Nome})
@@ -238,7 +240,6 @@ namespace ScholaAi.Controllers
                 return StatusCode(500,$"Erro interno: {ex.Message}");
             }
         }
-
 
         private byte[] MesclarPdfComAnexos(byte[] pdfPrincipal,List<byte[]> anexosPdf)
         {
