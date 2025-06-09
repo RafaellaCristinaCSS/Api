@@ -455,7 +455,7 @@ namespace ScholaAi.Controllers
                     Matéria: {dto.NomeMateria}
                     Tema: {dto.TemaAtividade}
                     Aluno: nascido em {aluno.DataNascimento}, tem como gênero literário favorito {aluno.GeneroLiterarioFavorito} e {aluno.InformacaoAdicional}
-                    {(existeMaterial ? "Base de leitura:" + string.Join(" ", materiais) : "")}
+                    {(existeMaterial ? "Base de leitura: " + string.Join(" ",materiais) : "Não há material disponível. Use seus conhecimentos sobre o tema para criar as questões.")}
 
                     Formato JSON:
                     [
