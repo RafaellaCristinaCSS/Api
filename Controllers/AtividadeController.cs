@@ -113,24 +113,24 @@ namespace ScholaAi.Controllers
                 .Select(e => e.Id)
                 .FirstOrDefaultAsync();
 
-            if(idProfessor == 0)
+            if (idProfessor == 0)
                 return BadRequest("Professor não encontrado para o agente informado. " + atividadeDto.IdAgente);
 
             Atividade atividade;
 
             try
             {
-                atividade = await MontarAtividade(atividadeDto,idProfessor);
+                atividade = await MontarAtividade(atividadeDto, idProfessor);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                return StatusCode(500,"Erro ao montar atividade: " + ex.Message);
+                return StatusCode(500, "Erro ao montar atividade: " + ex.Message);
             }
 
-            await SalvarAtividadeNoBanco(atividade,atividadeDto);
-            return CreatedAtAction(nameof(AdicionarAtividade),new { id = atividade.Id },atividade);
+            await SalvarAtividadeNoBanco(atividade, atividadeDto);
+            return CreatedAtAction(nameof(AdicionarAtividade), new { id = atividade.Id }, atividade);
         }
-        private async Task<Atividade> MontarAtividade(AtividadeDTO dto,int idProfessor)
+        private async Task<Atividade> MontarAtividade(AtividadeDTO dto, int idProfessor)
         {
             var atividade = new Atividade
             {
@@ -142,10 +142,10 @@ namespace ScholaAi.Controllers
                 Publicada = dto.Publicada
             };
 
-            switch(dto.IdTipoAtividade)
+            switch (dto.IdTipoAtividade)
             {
                 case 1:
-                    if(dto.Questoes?.Any() == true)
+                    if (dto.Questoes?.Any() == true)
                     {
                         atividade.Questoes = dto.Questoes.Select(q => new Questao
                         {
@@ -170,12 +170,12 @@ namespace ScholaAi.Controllers
 
             return atividade;
         }
-        private async Task SalvarAtividadeNoBanco(Atividade atividade,AtividadeDTO dto)
+        private async Task SalvarAtividadeNoBanco(Atividade atividade, AtividadeDTO dto)
         {
             _context.Atividade.Add(atividade);
             await _context.SaveChangesAsync();
 
-            foreach(var idAluno in dto.ListaIdAlunos)
+            foreach (var idAluno in dto.ListaIdAlunos)
             {
                 var relacao = new AlunoAtividadeMateria
                 {
@@ -199,14 +199,14 @@ namespace ScholaAi.Controllers
         {
             try
             {
-                var questoesGeradas = await GerarQuestoesAutomaticamente(dto); 
+                var questoesGeradas = await GerarQuestoesAutomaticamente(dto);
 
-                if(questoesGeradas == null)
+                if (questoesGeradas == null)
                     throw new Exception("Erro ao gerar questões automaticamente.");
 
-                return  questoesGeradas;
+                return questoesGeradas;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new Exception("Erro ao gerar questões automaticamente: " + ex.Message);
             }
@@ -432,8 +432,9 @@ namespace ScholaAi.Controllers
         {
             try
             {
+                bool existeMaterial = true;
                 var aluno = await _context.Aluno.FirstOrDefaultAsync(a => a.Id == dto.ListaIdAlunos.First());
-                if(aluno == null)
+                if (aluno == null)
                 {
                     return NotFound(new
                     {
@@ -447,21 +448,14 @@ namespace ScholaAi.Controllers
                     .Select(m => m.Conteudo)
                     .ToListAsync();
 
-                if(materiais == null || !materiais.Any())
-                {
-                    return NotFound(new
-                    {
-                        mensagem = "Não há nenhum material disponível para a matéria informada.",
-                        idMateria = dto.IdMateria
-                    });
-                }
+                if (materiais == null || !materiais.Any()) existeMaterial = false;
 
                 var prompt = $@"
                     Crie 3 questões de múltipla escolha com 4 alternativas cada, sendo uma correta.
                     Matéria: {dto.NomeMateria}
                     Tema: {dto.TemaAtividade}
                     Aluno: nascido em {aluno.DataNascimento}, tem como gênero literário favorito {aluno.GeneroLiterarioFavorito} e {aluno.InformacaoAdicional}
-                    Base de leitura: {string.Join(" ",materiais)}
+                    {(existeMaterial ? "Base de leitura:" + string.Join(" ", materiais) : "")}
 
                     Formato JSON:
                     [
@@ -491,23 +485,23 @@ namespace ScholaAi.Controllers
                 string OpenIa = _context.Configuracoes
                     .FirstOrDefault(c => c.Nome == "OpenIa")?.Chave;
 
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",OpenIa);
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", OpenIa);
 
-                var jsonContent = new StringContent(JsonSerializer.Serialize(body),Encoding.UTF8,"application/json");
+                var jsonContent = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
                 HttpResponseMessage response;
                 try
                 {
-                    response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions",jsonContent);
+                    response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions", jsonContent);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     throw new Exception("Erro na requisição HTTP para a OpenAI: " + ex.Message);
                 }
 
                 var responseString = await response.Content.ReadAsStringAsync();
 
-                if(!response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                     throw new Exception("Erro da API OpenAI: " + response.StatusCode + " - " + responseString);
 
                 string content;
@@ -520,7 +514,7 @@ namespace ScholaAi.Controllers
                         .GetProperty("content")
                         .ToString();
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     throw new Exception("Erro ao extrair o conteúdo da resposta JSON da OpenAI: " + ex.Message + "\nResposta bruta:\n" + responseString);
                 }
@@ -529,36 +523,36 @@ namespace ScholaAi.Controllers
                 {
                     content = content.Trim();
 
-                    if(content.StartsWith("```"))
+                    if (content.StartsWith("```"))
                     {
                         var firstLineEnd = content.IndexOf('\n');
-                        if(firstLineEnd != -1)
+                        if (firstLineEnd != -1)
                         {
                             content = content.Substring(firstLineEnd + 1);
                         }
 
-                        if(content.EndsWith("```"))
+                        if (content.EndsWith("```"))
                         {
-                            content = content.Substring(0,content.Length - 3);
+                            content = content.Substring(0, content.Length - 3);
                         }
 
                         content = content.Trim();
                     }
 
-                    var questoes = JsonSerializer.Deserialize<List<Questao>>(content,new JsonSerializerOptions
+                    var questoes = JsonSerializer.Deserialize<List<Questao>>(content, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
                     });
                     return Ok(questoes) ?? throw new Exception("A lista de questões retornada está vazia.");
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     throw new Exception("Erro ao interpretar as questões retornadas pela IA: " + ex.Message + "\nConteúdo retornado:\n" + content);
                 }
             }
-            catch(Exception geral)
+            catch (Exception geral)
             {
-                throw new Exception("Erro ao gerar questões automaticamente: " + geral.Message,geral);
+                throw new Exception("Erro ao gerar questões automaticamente: " + geral.Message, geral);
             }
         }
 
