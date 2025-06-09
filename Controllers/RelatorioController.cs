@@ -14,7 +14,7 @@ namespace ScholaAi.Controllers
 {
     [ApiController]
     [Route("api/relatorio")]
-    public class RelatorioController :ControllerBase
+    public class RelatorioController : ControllerBase
     {
         private readonly AppDbContext _context;
 
@@ -35,7 +35,7 @@ namespace ScholaAi.Controllers
             .ToListAsync();
 
             var relatorio = dados
-                .GroupBy(d => new { d.IdMateria,d.Materia.Nome})
+                .GroupBy(d => new { d.IdMateria, d.Materia.Nome })
                 .Select(grupoMateria =>
                 {
                     var relatorioMateria = new RelatorioMateriaDto
@@ -75,7 +75,7 @@ namespace ScholaAi.Controllers
 
             var listaRelatorios = new List<object>();
 
-            foreach(var aluno in alunos)
+            foreach (var aluno in alunos)
             {
                 var dados = await _context.AlunoAtividadeMateria
                     .Include(a => a.Atividade)
@@ -86,7 +86,7 @@ namespace ScholaAi.Controllers
                     .ToListAsync();
 
                 var relatorio = dados
-                    .GroupBy(d => new { d.IdMateria,d.Materia.Nome })
+                    .GroupBy(d => new { d.IdMateria, d.Materia.Nome })
                     .Select(grupoMateria =>
                     {
                         var relatorioMateria = new RelatorioMateriaDto
@@ -115,7 +115,7 @@ namespace ScholaAi.Controllers
                     .ToList();
 
                 var nomeAluno = await _context.Agente
-                 .Where(a => a.Id  == aluno.IdAgente)
+                 .Where(a => a.Id == aluno.IdAgente)
                  .Select(a => a.Nome)
                  .FirstOrDefaultAsync();
 
@@ -135,6 +135,7 @@ namespace ScholaAi.Controllers
             try
             {
                 QuestPDF.Settings.License = LicenseType.Community;
+
                 var atividades = await (
                     from a in _context.AlunoAtividadeMateria
                     join at in _context.Atividade on a.IdAtividade equals at.Id
@@ -154,19 +155,19 @@ namespace ScholaAi.Controllers
                     }
                 ).ToListAsync();
 
-                if(!atividades.Any())
+                if (!atividades.Any())
                     return NotFound("Nenhuma atividade encontrada com pontuação.");
 
                 var zipStream = new MemoryStream();
-                using(var archive = new ZipArchive(zipStream,ZipArchiveMode.Create,true))
+                using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
                 {
-                    foreach(var item in atividades)
+                    foreach (var item in atividades)
                     {
                         var atividade = item.Atividade;
                         var tipoNome = item.TipoAtividadeNome ?? "Desconhecido";
-                        var dataAtividade = item.Data.ToString();
+                        var dataAtividade = item.Data?.ToString("dd/MM/yyyy") ?? "Data não informada";
 
-                        var nomeArquivo = $"Atividade_{atividade.Nome} - {tipoNome} - {dataAtividade}.pdf";
+                        var nomeArquivo = $"Atividade_{atividade?.Nome ?? "Desconhecida"} - {tipoNome} - {dataAtividade}.pdf";
                         var anexosPdf = new List<byte[]>();
 
                         var pdfBytes = QuestPDF.Fluent.Document.Create(container =>
@@ -179,12 +180,12 @@ namespace ScholaAi.Controllers
 
                                 page.Content().Column(col =>
                                 {
-                                    col.Item().Text($"Atividade: {atividade.Nome} - {tipoNome}").Bold().FontSize(18);
+                                    col.Item().Text($"Atividade: {atividade?.Nome ?? "Desconhecida"} - {tipoNome}").Bold().FontSize(18);
                                     col.Item().Text($"Data: {dataAtividade}");
 
-                                    if(!string.IsNullOrWhiteSpace(atividade.ArquivoBase64))
+                                    if (!string.IsNullOrWhiteSpace(atividade?.ArquivoBase64))
                                     {
-                                        if(atividade.ArquivoBase64.Contains("image"))
+                                        if (atividade.ArquivoBase64.Contains("image"))
                                         {
                                             try
                                             {
@@ -197,22 +198,37 @@ namespace ScholaAi.Controllers
                                                 col.Item().Text("[Erro ao carregar imagem]");
                                             }
                                         }
-                                        else if(atividade.ArquivoBase64.Contains("pdf"))
+                                        else if (atividade.ArquivoBase64.Contains("pdf"))
                                         {
-                                           var base64Data = atividade.ArquivoBase64.Split(',').Last();
-                                           var pdfFileBytes = Convert.FromBase64String(base64Data);
-                                           anexosPdf.Add(pdfFileBytes); 
+                                            try
+                                            {
+                                                var base64Data = atividade.ArquivoBase64.Split(',').Last();
+                                                var pdfFileBytes = Convert.FromBase64String(base64Data);
+                                                anexosPdf.Add(pdfFileBytes);
+                                            }
+                                            catch
+                                            {
+                                                col.Item().Text("[Erro ao carregar anexo em PDF]");
+                                            }
                                         }
                                     }
 
-                                    if(atividade.Questoes != null && atividade.Questoes.Any())
+                                    if (atividade?.Questoes != null && atividade.Questoes.Any())
                                     {
-                                        foreach(var questao in atividade.Questoes)
+                                        foreach (var questao in atividade.Questoes)
                                         {
-                                            col.Item().Text($"Questão: {questao.Texto}").Bold();
-                                            foreach(var alt in questao.Alternativas)
+                                            col.Item().Text($"Questão: {questao?.Texto ?? "[Texto não disponível]"}").Bold();
+
+                                            if (questao?.Alternativas != null && questao.Alternativas.Any())
                                             {
-                                                col.Item().Text($"- {alt.Texto} {(alt.Correta ? "(Correta)" : "")}");
+                                                foreach (var alt in questao.Alternativas)
+                                                {
+                                                    col.Item().Text($"- {alt?.Texto ?? "[Alternativa sem texto]"} {(alt?.Correta == true ? "(Correta)" : "")}");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                col.Item().Text("[Sem alternativas]");
                                             }
                                         }
                                     }
@@ -222,43 +238,43 @@ namespace ScholaAi.Controllers
                             });
                         }).GeneratePdf();
 
-                        if(anexosPdf.Any())
-                            pdfBytes = MesclarPdfComAnexos(pdfBytes,anexosPdf);
+                        if (anexosPdf.Any())
+                            pdfBytes = MesclarPdfComAnexos(pdfBytes, anexosPdf);
 
-                        var entry = archive.CreateEntry($"Atividade_{item.Id}.pdf");
+                        var entry = archive.CreateEntry(nomeArquivo);
                         using var entryStream = entry.Open();
-                        await entryStream.WriteAsync(pdfBytes,0,pdfBytes.Length);
+                        await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
                     }
                 }
 
                 zipStream.Position = 0;
-                return File(zipStream.ToArray(),"application/zip",$"RelatorioCompleto_{idAluno}.zip");
+                return File(zipStream.ToArray(), "application/zip", $"RelatorioCompleto_{idAluno}.zip");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                Console.WriteLine("Erro ao gerar relatório: " + ex.Message);
-                return StatusCode(500,$"Erro interno: {ex.Message}");
+                Console.WriteLine("Erro ao gerar relatório: " + ex.ToString());
+                return StatusCode(500, $"Erro interno: {ex.Message}");
             }
         }
 
-        private byte[] MesclarPdfComAnexos(byte[] pdfPrincipal,List<byte[]> anexosPdf)
+        private byte[] MesclarPdfComAnexos(byte[] pdfPrincipal, List<byte[]> anexosPdf)
         {
             using var outputDocument = new PdfDocument();
 
-            using(var stream = new MemoryStream(pdfPrincipal))
+            using (var stream = new MemoryStream(pdfPrincipal))
             {
-                var inputDoc = PdfReader.Open(stream,PdfDocumentOpenMode.Import);
-                for(int i = 0;i < inputDoc.PageCount;i++)
+                var inputDoc = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
+                for (int i = 0; i < inputDoc.PageCount; i++)
                 {
                     outputDocument.AddPage(inputDoc.Pages[i]);
                 }
             }
 
-            foreach(var pdfAnexo in anexosPdf)
+            foreach (var pdfAnexo in anexosPdf)
             {
                 using var stream = new MemoryStream(pdfAnexo);
-                var inputDoc = PdfReader.Open(stream,PdfDocumentOpenMode.Import);
-                for(int i = 0;i < inputDoc.PageCount;i++)
+                var inputDoc = PdfReader.Open(stream, PdfDocumentOpenMode.Import);
+                for (int i = 0; i < inputDoc.PageCount; i++)
                 {
                     outputDocument.AddPage(inputDoc.Pages[i]);
                 }
