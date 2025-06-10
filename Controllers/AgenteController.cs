@@ -279,8 +279,12 @@ namespace ScholaAi.Controllers
         [HttpGet("buscarAlunosPorEducador/{idAgenteEducador}")]
         public async Task<ActionResult<IEnumerable<AgenteAlunoDTO>>> GetAlunosPorEducadorAsync(int idAgenteEducador)
         {
+            int idEducador = _context.Educador
+                               .Where(e => e.IdAgente == idAgenteEducador)
+                               .Select(e => e.Id)
+                               .FirstOrDefault();
             var alunos = await _context.Aluno
-                .Where(aluno => aluno.IdEducador == idAgenteEducador)
+                .Where(aluno => aluno.IdEducador == idEducador)
                 .Join(
                     _context.Agente.Where(agente => agente.IdTipoAgente == 1),
                     aluno => aluno.IdAgente,
