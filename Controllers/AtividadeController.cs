@@ -108,19 +108,38 @@ namespace ScholaAi.Controllers
         [HttpPost]
         public async Task<IActionResult> AdicionarAtividade([FromBody] AtividadeDTO atividadeDto)
         {
-            var idProfessor = await _context.Educador
-                .Where(e => e.IdAgente == atividadeDto.IdAgente)
-                .Select(e => e.Id)
-                .FirstOrDefaultAsync();
+            int idEducador =0;
 
-            if (idProfessor == 0)
+            var agente = await _context.Agente
+                .FirstOrDefaultAsync(a => a.Id == atividadeDto.IdAgente);
+
+            if(agente != null)
+            {
+                if(agente.IdTipoAgente == 1)
+                {
+                    idEducador = await _context.Aluno
+                        .Where(a => a.IdAgente == atividadeDto.IdAgente)
+                        .Select(a => (int)a.IdEducador)
+                        .FirstOrDefaultAsync();
+                }
+                else
+                {
+                    idEducador = await _context.Educador
+                        .Where(e => e.IdAgente == atividadeDto.IdAgente)
+                        .Select(e => (int)e.Id)
+                        .FirstOrDefaultAsync();
+                }
+            }
+
+
+            if(idEducador == 0)
                 return BadRequest("Professor não encontrado para o agente informado. " + atividadeDto.IdAgente);
 
             Atividade atividade;
 
             try
             {
-                atividade = await MontarAtividade(atividadeDto, idProfessor);
+                atividade = await MontarAtividade(atividadeDto, idEducador);
             }
             catch (Exception ex)
             {
