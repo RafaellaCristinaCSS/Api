@@ -109,31 +109,36 @@ namespace ScholaAi.Controllers
         public async Task<IActionResult> AdicionarAtividade([FromBody] AtividadeDTO atividadeDto)
         {
             int idEducador =0;
-
+            string teste = "";
             var agente = await _context.Agente
                 .FirstOrDefaultAsync(a => a.Id == atividadeDto.IdAgente);
-
+            teste += agente.ToString();
             if(agente != null)
             {
                 if(agente.IdTipoAgente == 1)
                 {
+                    teste += " aluno ";
                     idEducador = await _context.Aluno
                         .Where(a => a.IdAgente == atividadeDto.IdAgente)
                         .Select(a => (int)a.IdEducador)
                         .FirstOrDefaultAsync();
+                    teste += $" idEducador {idEducador.ToString()}";
                 }
                 else
                 {
+                    teste += " educador ";
                     idEducador = await _context.Educador
                         .Where(e => e.IdAgente == atividadeDto.IdAgente)
                         .Select(e => (int)e.Id)
                         .FirstOrDefaultAsync();
+
+                    teste += $" id educador {idEducador.ToString()}";
                 }
             }
 
 
             if(idEducador == 0)
-                return BadRequest("Professor não encontrado para o agente informado. " + atividadeDto.IdAgente);
+                return BadRequest("Professor não encontrado para o agente informado. " + atividadeDto.IdAgente + " " + teste);
 
             Atividade atividade;
 
