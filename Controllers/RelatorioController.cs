@@ -150,10 +150,23 @@ namespace ScholaAi.Controllers
                         Atividade = at,
                         TipoAtividadeNome = tipo.Nome,
                         Pontuacao = a.Pontuacao,
-                        Questoes = at.Questoes,
+                        Questoes = _context.Questao
+                            .Where(q => q.AtividadeId == at.Id)
+                            .Select(q => new
+                            {
+                                q.Id,
+                                q.Texto,
+                                Alternativas = _context.Alternativa
+                                    .Where(alt => alt.QuestaoId == q.Id)
+                                    .Select(alt => new
+                                    {
+                                        alt.Id,
+                                        alt.Texto,
+                                        alt.Correta
+                                    }).ToList()
+                            }).ToList(),
                         Data = a.Data
-                    }
-                ).ToListAsync();
+                    }).ToListAsync();
 
                 if (!atividades.Any())
                     return NotFound("Nenhuma atividade encontrada com pontuação.");
