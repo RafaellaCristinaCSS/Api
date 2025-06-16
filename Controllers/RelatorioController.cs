@@ -226,13 +226,13 @@ namespace ScholaAi.Controllers
                                         }
                                     }
 
-                                    if (atividade?.Questoes != null && atividade.Questoes.Any())
+                                    if (item.Questoes != null && item.Questoes.Any())
                                     {
-                                        foreach (var questao in atividade.Questoes)
+                                        foreach (var questao in item.Questoes)
                                         {
                                             col.Item().Text($"Questão: {questao?.Texto ?? "[Texto não disponível]"}").Bold();
 
-                                            if (questao?.Alternativas != null && questao.Alternativas.Any())
+                                            if (questao.Alternativas != null && questao.Alternativas.Any())
                                             {
                                                 foreach (var alt in questao.Alternativas)
                                                 {
